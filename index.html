@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 40</div>
+      <div class="h-build">v 41</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -311,7 +311,7 @@
     <div class="ff">
       <label class="fl">Data</label>
       <div class="row2">
-        <input type="date" class="fi" id="ev-date-start">
+        <input type="date" class="fi" id="ev-date-start" onchange="syncEndDate(this.value)">
         <input type="date" class="fi" id="ev-date-end">
       </div>
     </div>
@@ -853,6 +853,11 @@ function renderMemberFilter() {
 function renderCalendar() {
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
   document.getElementById('cal-month').textContent = `${MONTHS[m]} ${y}`;
+  // Recriar cal-grid se foi substituído pelo week-strip
+  const wrap = document.getElementById('cal-grid-wrap');
+  if (!document.getElementById('cal-grid')) {
+    wrap.innerHTML = '<div class="cal-grid" id="cal-grid"></div>';
+  }
   const grid = document.getElementById('cal-grid');
   grid.innerHTML = '';
   DAYS.forEach(d => { const el = document.createElement('div'); el.className='cal-dow'; el.textContent=d; grid.appendChild(el); });
@@ -1002,7 +1007,7 @@ function renderWeekView() {
   const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 6);
   const sameMonth = startOfWeek.getMonth() === endOfWeek.getMonth();
   const hdr = sameMonth
-    ? `${startOfWeek.getDate()}–${endOfWeek.getDate()} de ${MONTHS[endOfWeek.getMonth()]}`
+    ? `${startOfWeek.getDate()}–${endOfWeek.getDate()} de ${MONTHS[endOfWeek.getMonth()].toLowerCase()}`
     : `${startOfWeek.getDate()} ${MONTHS[startOfWeek.getMonth()]} – ${endOfWeek.getDate()} ${MONTHS[endOfWeek.getMonth()]}`;
   document.getElementById('cal-month').textContent = hdr;
 
@@ -1158,6 +1163,11 @@ function renderMemberPicker() {
     };
     container.appendChild(btn);
   });
+}
+
+function syncEndDate(startVal) {
+  const endInput = document.getElementById('ev-date-end');
+  if (!endInput.value || endInput.value < startVal) endInput.value = startVal;
 }
 
 function toggleAllDay() {
@@ -1422,7 +1432,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 40;
+const CURRENT_BUILD = 41;
 let updatePending = false;
 
 async function checkForUpdate() {
