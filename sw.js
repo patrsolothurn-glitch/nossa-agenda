@@ -1,4 +1,4 @@
-const CACHE = 'nossa-agenda-v33';
+const CACHE = 'nossa-agenda-v34';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -31,12 +31,18 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   const data = e.data?.json() || {};
   e.waitUntil(
-    self.registration.showNotification(data.title || 'NossaAgenda', {
-      body: data.message || '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      vibrate: [200, 100, 200],
-    })
+    Promise.all([
+      self.registration.showNotification(data.title || 'NossaAgenda', {
+        body: data.message || '',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        vibrate: [200, 100, 200],
+      }),
+      // Avisa todos os tabs/janelas abertas para refresh imediato
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        clients.forEach(c => c.postMessage({ type: 'REFRESH_EVENTS' }));
+      })
+    ])
   );
 });
 

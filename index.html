@@ -236,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 33</div>
+      <div class="h-build">v 34</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -698,11 +698,11 @@ async function saveEvent() {
     : await sb.from('events').insert(payload);
   if (error) { console.error('Save error:', JSON.stringify(error)); toast('Erro: ' + (error.message||error.code||'desconhecido')); return; }
 
-  // Notificar todos quando evento novo é criado
-  if (!editId) {
-    const _p = new URLSearchParams({ title: '📅 NossaAgenda', message: (profile?.name||'Alguém')+' adicionou: '+title, apikey: SUPABASE_KEY });
-    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + _p).catch(() => {});
-  }
+  // Notificar todos (criar OU editar)
+  const _msg = editId
+    ? (profile?.name||'Alguém') + ' atualizou: ' + title
+    : (profile?.name||'Alguém') + ' adicionou: ' + title;
+  sendPushSilent(_msg);
 
   closeModal('ev-modal');
   // Navega para a data do evento e reset do filtro para mostrar tudo
@@ -721,7 +721,9 @@ async function saveEvent() {
 
 async function deleteEvent() {
   if (!editId || !confirm('Eliminar este evento?')) return;
+  const delTitle = document.getElementById('ev-title').value.trim();
   await sb.from('events').delete().eq('id', editId);
+  sendPushSilent((profile?.name||'Alguém') + ' removeu: ' + delTitle);
   closeModal('ev-modal');
   await loadEvents();
   renderCalendar();
@@ -1050,6 +1052,11 @@ async function sendPushToAll() {
   } catch(e) { closeModal('push-modal'); toast('Erro: ' + e.message); }
 }
 
+function sendPushSilent(message) {
+  const p = new URLSearchParams({ title: '📅 NossaAgenda', message, apikey: SUPABASE_KEY });
+  fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p).catch(() => {});
+}
+
 function b64ToUint8(b64) {
   const pad = '='.repeat((4 - b64.length % 4) % 4);
   const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
@@ -1151,7 +1158,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 33;
+const CURRENT_BUILD = 34;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1184,6 +1191,17 @@ async function applyUpdate() {
 }
 
 // Verifica ao abrir o ecrã
+// Refresh imediato via Service Worker (quando Pedro/Lídia recebem push com app aberta)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', async (e) => {
+    if (e.data?.type === 'REFRESH_EVENTS' && user) {
+      await loadEvents();
+      renderCalendar();
+      renderDayEvents(selectedDate);
+    }
+  });
+}
+
 document.addEventListener('visibilitychange', async () => {
   if (!document.hidden) {
     checkForUpdate();
