@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 26</div>
+      <div class="h-build">v 27</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -231,7 +231,7 @@
   <div class="cal-section">
     <div class="cal-nav">
       <button onclick="changeMonth(-1)">‹</button>
-      <span class="cal-month" id="cal-month"></span>
+      <span class="cal-month" id="cal-month" onclick="goToToday()" style="cursor:pointer" title="Ir para hoje"></span>
       <button onclick="changeMonth(1)">›</button>
     </div>
     <div class="cal-grid" id="cal-grid"></div>
@@ -288,9 +288,6 @@
       <label class="fl">Hora fim (opcional)</label>
       <input type="time" class="fi" id="ev-time-end-h" style="width:100%">
     </div>
-
-    <div class="ff">
-      <label class="fl">Notaiv>
 
     <div class="ff">
       <label class="fl">Nota (opcional)</label>
@@ -379,7 +376,7 @@
     </div>
     <div class="menu-item" onclick="activatePush()">
       <div class="mi-icon" style="background:#e0f2fe">🔔</div>
-      <span>Ativar notificações</span>
+      <span id="push-status-text">Ativar notificações</span>
     </div>
     <div class="menu-item" onclick="shareInvite()">
       <div class="mi-icon" style="background:#f0fdf4">👤</div>
@@ -476,6 +473,7 @@ function showApp() {
   document.getElementById('h-avatar').textContent = displayName[0].toUpperCase();
   document.getElementById('big-av').textContent = displayName[0].toUpperCase();
   document.getElementById('um-email').textContent = user?.email || '';
+  updatePushStatus();
 }
 
 function switchTab(tab) {
@@ -516,14 +514,25 @@ async function doRegister() {
 
 function shareInvite() {
   closeModal('user-menu');
-  const quem = profile?.name?.split(' ')[0] || 'A família';
+  setTimeout(() => openModal('invite-modal'), 200);
+}
+
+function sendWhatsAppInvite() {
+  const name  = document.getElementById('inv-name').value.trim();
+  const email = document.getElementById('inv-email').value.trim();
+  const pass  = document.getElementById('inv-pass').value.trim();
+  if (!email) { toast('Escreve o email'); return; }
+  const greeting = name ? name + ', ' : '';
   const msg = encodeURIComponent(
-    '👨‍👩‍👧 *NossaAgenda* — a nossa agenda familiar!\n\n' +
-    quem + ' convidou-te para partilhar eventos e marcações em família 📅\n\n' +
-    '👉 https://nossaagenda.ch\n\n' +
-    'Abre o link, toca em *Criar conta*, regista-te com o teu email e já estás dentro! 🎉'
+    '👨‍👩‍👧 *NossaAgenda* — a agenda da nossa família!\n\n' +
+    greeting + 'foste convidado(a) a juntar-te à nossa agenda partilhada 📅\n\n' +
+    '👉 *https://nossaagenda.ch*\n\n' +
+    '📧 Email: ' + email + '\n' +
+    (pass ? '🔑 Password: ' + pass + '\n' : '') +
+    '\nAbre o link, entra com estes dados e já estás dentro! 🎉'
   );
   window.open('https://wa.me/?text=' + msg, '_blank');
+  closeModal('invite-modal');
 }
 
 async function doLogin() {
@@ -754,6 +763,21 @@ function renderDayEvents(date) {
 
 async function changeMonth(dir) {
   viewDate.setMonth(viewDate.getMonth() + dir);
+  // Atualiza selectedDate para o novo mês
+  const today = new Date();
+  if (viewDate.getFullYear() === today.getFullYear() && viewDate.getMonth() === today.getMonth()) {
+    selectedDate = new Date();
+  } else {
+    selectedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  }
+  await loadEvents();
+  renderCalendar();
+  renderDayEvents(selectedDate);
+}
+
+async function goToToday() {
+  viewDate = new Date();
+  selectedDate = new Date();
   await loadEvents();
   renderCalendar();
   renderDayEvents(selectedDate);
@@ -765,16 +789,29 @@ function openEventModal(ev = null) {
   allDay = ev ? (ev.all_day === true) : false;
   selCat = ev?.category || 'familia';
   document.getElementById('ev-modal-title').textContent = ev ? 'Editar Evento' : 'Novo Evento';
-  document.getElementById('ev-title').value = ev?.title || '';
+  // Extract icon from title when editing
+  if (ev) {
+    const foundIcon = ICONS.find(ic => (ev.title||'').startsWith(ic));
+    if (foundIcon) {
+      selIcon = foundIcon;
+      document.getElementById('ev-title').value = ev.title.substring(foundIcon.length).trimStart();
+    } else {
+      selIcon = '📅';
+      document.getElementById('ev-title').value = ev.title || '';
+    }
+  } else {
+    selIcon = '📅';
+    document.getElementById('ev-title').value = '';
+  }
   document.getElementById('ev-desc').value  = ev?.description || '';
-  document.getElementById('ev-date-start').value = ev?.start_date || toDateStr(selectedDate);
-  document.getElementById('ev-date-end').value   = ev?.end_date || '';
+  const dateStr = ev?.start_date || toDateStr(selectedDate);
+  document.getElementById('ev-date-start').value = dateStr;
+  document.getElementById('ev-date-end').value   = ev?.end_date || dateStr;
   document.getElementById('ev-time-start-h').value = ev?.start_time?.slice(0,5) || '';
   document.getElementById('ev-time-end-h').value   = ev?.end_time?.slice(0,5) || '';
   document.getElementById('allday-tog').className = 'tog ' + (allDay ? 'on' : '');
-document.getElementById('time-fields').classList.toggle('hidden', allDay);
+  document.getElementById('time-fields').classList.toggle('hidden', allDay);
   document.getElementById('ev-del-btn').classList.toggle('hidden', !ev);
-  selIcon = ev?.icon || '📅';
   renderIconGrid();
   renderCatGrid();
   openModal('ev-modal');
@@ -882,7 +919,8 @@ async function activatePush() {
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(VAPID_PUB_KEY) });
     await sb.from('push_subscriptions').upsert({ user_id: user.id, subscription: sub.toJSON() }, { onConflict: 'user_id' });
     toast('Notificações ativadas ✓');
-  } catch { toast('Erro nas notificações'); }
+    await updatePushStatus();
+  } catch(e) { toast('Erro nas notificações: ' + (e.message||'')); }
 }
 
 async function sendPushToAll() {
@@ -905,6 +943,16 @@ function b64ToUint8(b64) {
 }
 
 // ========== USER MENU ==========
+async function updatePushStatus() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    const el = document.getElementById('push-status-text');
+    if (el) el.textContent = sub ? '🔔 Notificações ativas ✓' : 'Ativar notificações';
+  } catch {}
+}
+
 function openUserMenu() { openModal('user-menu'); }
 
 // ========== MODAL HELPERS ==========
@@ -919,18 +967,30 @@ function toast(msg) {
 }
 
 // ========== REALTIME ==========
+let realtimeChannel = null;
+
 function setupRealtime() {
-  sb.channel('events-realtime')
+  if (realtimeChannel) {
+    try { sb.removeChannel(realtimeChannel); } catch {}
+  }
+  realtimeChannel = sb.channel('events-realtime-' + Date.now())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, async () => {
       await loadEvents();
       renderCalendar();
       renderDayEvents(selectedDate);
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Ligado ✓');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[Realtime] Desligado (' + status + '), a reconectar em 5s...');
+        setTimeout(setupRealtime, 5000);
+      }
+    });
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 26;
+const CURRENT_BUILD = 27;
 
 async function checkForUpdate() {
   try {

@@ -1,4 +1,4 @@
-const CACHE = 'nossa-agenda-v26';
+const CACHE = 'nossa-agenda-v27';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -34,7 +34,7 @@ self.addEventListener('push', e => {
     self.registration.showNotification(data.title || 'NossaAgenda', {
       body: data.message || '',
       icon: '/icons/icon-192.png',
-      badge: '/icons/badge-72.png',
+      badge: '/icons/icon-192.png',
       vibrate: [200, 100, 200],
     })
   );
