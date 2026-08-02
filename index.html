@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 9</div>
+      <div class="h-build">v 10</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -489,15 +489,14 @@ async function doRegister() {
 
 function shareInvite() {
   closeModal('user-menu');
-  const link = 'https://nossaagenda.ch';
-  if (navigator.share) {
-    navigator.share({ title: 'NossaAgenda', text: 'Entra na nossa agenda familiar!', url: link });
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(link);
-    toast('Link copiado: nossaagenda.ch');
-  } else {
-    toast('nossaagenda.ch — partilha este link!');
-  }
+  const nome = profile?.name?.split(' ')[0] || 'Eu';
+  const msg = encodeURIComponent(
+    '👨‍👩‍👧 *NossaAgenda* — a nossa agenda familiar!\n\n' +
+    nome + ' convidou-te para partilhar eventos, marcações e lembretes em família. 📅\n\n' +
+    '👉 Entra aqui: https://nossaagenda.ch\n\n' +
+    'Cria a tua conta com o teu email e já podes ver e criar eventos para toda a família!'
+  );
+  window.open('https://wa.me/?text=' + msg, '_blank');
 }
 
 async function doLogin() {
@@ -892,7 +891,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 9;
+const CURRENT_BUILD = 10;
 
 async function checkForUpdate() {
   try {
