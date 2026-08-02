@@ -181,7 +181,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 5</div>
+      <div class="h-build">v 6</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -315,6 +315,10 @@
       <div class="mi-icon" style="background:#e0f2fe">🔔</div>
       <span>Ativar notificações</span>
     </div>
+    <div class="menu-item" onclick="forceRefresh()">
+      <div class="mi-icon" style="background:#f0fdf4">🔄</div>
+      <span>Forçar atualização</span>
+    </div>
     <div class="menu-item" onclick="doLogout()" style="color:#ef4444">
       <div class="mi-icon" style="background:#fee2e2">🚪</div>
       <span>Sair</span>
@@ -325,7 +329,7 @@
 <!-- ===== TOAST ===== -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@latest/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@latest/dist/umd/supabase.js"></script>
 <script>
 // ========== CONFIG ==========
 const SUPABASE_URL  = 'https://hfpvbemoxgvtmerdnufb.supabase.co';
@@ -394,7 +398,10 @@ function showApp() {
   const init = (profile?.name || user?.email || '?')[0].toUpperCase();
   document.getElementById('h-avatar').textContent = init;
   document.getElementById('big-av').textContent = init;
-  document.getElementById('um-name').textContent = profile?.name || 'Utilizador';
+  const displayName = (profile?.name && profile.name !== 'Utilizador') ? profile.name : (user?.email?.split('@')[0] || 'Utilizador');
+  document.getElementById('um-name').textContent = displayName;
+  document.getElementById('h-avatar').textContent = displayName[0].toUpperCase();
+  document.getElementById('big-av').textContent = displayName[0].toUpperCase();
   document.getElementById('um-email').textContent = user?.email || '';
 }
 
@@ -409,6 +416,20 @@ async function doLogin() {
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
   btn.textContent = 'Entrar'; btn.disabled = false;
   if (error) { err.textContent = 'Email ou password incorretos.'; err.style.display = 'block'; }
+}
+
+async function forceRefresh() {
+  closeModal('user-menu');
+  toast('A atualizar...');
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  } catch {}
+  setTimeout(() => window.location.reload(true), 500);
 }
 
 async function doLogout() {
@@ -725,7 +746,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 5;
+const CURRENT_BUILD = 6;
 
 async function checkForUpdate() {
   try {
