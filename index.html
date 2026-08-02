@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 15</div>
+      <div class="h-build">v 16</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -608,7 +608,10 @@ async function saveEvent() {
   if (!editId) {
     fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'sb_publishable_mwNqPy5JuqPPyt_HOAkNaQ_3LEnx73H'
+      },
       body: JSON.stringify({ title: '📅 NossaAgenda', message: (profile?.name || 'Alguém') + ' adicionou: ' + title })
     }).catch(() => {});
   }
@@ -890,13 +893,16 @@ async function sendPushToAll() {
   try {
     const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'sb_publishable_mwNqPy5JuqPPyt_HOAkNaQ_3LEnx73H'
+      },
       body: JSON.stringify({ title, message: msg })
     });
     const data = await res.json();
     closeModal('push-modal');
-    toast(data.sent > 0 ? 'Notificação enviada ✓' : 'Erro: ' + JSON.stringify(data));
-  } catch(e) { closeModal('push-modal'); toast('Erro: ' + e.message); }
+    toast(data.sent > 0 ? 'Notificação enviada ✓ (' + data.sent + ')' : 'Problema: ' + JSON.stringify(data));
+  } catch(e) { closeModal('push-modal'); toast('Erro rede: ' + e.message); }
 }
 
 function b64ToUint8(b64) {
@@ -920,7 +926,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 15;
+const CURRENT_BUILD = 16;
 
 async function checkForUpdate() {
   try {
