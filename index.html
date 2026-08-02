@@ -181,10 +181,13 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 7</div>
+      <div class="h-build">v 8</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
+
+  <!-- Member filter -->
+  <div id="member-filter" style="background:linear-gradient(135deg,#0ea5e9,#06b6d4);padding:0 16px 16px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none"></div>
 
   <!-- Calendar -->
   <div class="cal-section">
@@ -379,6 +382,7 @@ let logoTaps = 0, logoTimer = null;
 async function boot() {
   await loadProfile();
   showApp();
+  await loadMembers();
   await loadEvents();
   renderCalendar();
   renderDayEvents(selectedDate);
@@ -514,6 +518,54 @@ async function deleteEvent() {
   toast('Evento eliminado');
 }
 
+// ========== MEMBERS FILTER ==========
+let members = [];
+let filterMember = null;
+
+async function loadMembers() {
+  const { data } = await sb.from('profiles').select('id,name,email').order('name');
+  members = data || [];
+  renderMemberFilter();
+}
+
+function renderMemberFilter() {
+  const bar = document.getElementById('member-filter');
+  if (!bar) return;
+  bar.innerHTML = '';
+  
+  // "Todos" button
+  const allBtn = document.createElement('div');
+  allBtn.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';
+  const allCircle = document.createElement('div');
+  allCircle.style.cssText = 'width:52px;height:52px;border-radius:50%;background:' + (filterMember===null?'white':'rgba(255,255,255,0.3)') + ';display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid ' + (filterMember===null?'white':'transparent');
+  allCircle.textContent = '👥';
+  const allLabel = document.createElement('div');
+  allLabel.style.cssText = 'font-size:11px;font-weight:600;color:white;white-space:nowrap';
+  allLabel.textContent = 'Todos';
+  allBtn.appendChild(allCircle);
+  allBtn.appendChild(allLabel);
+  allBtn.onclick = () => { filterMember = null; renderMemberFilter(); renderDayEvents(selectedDate); };
+  bar.appendChild(allBtn);
+
+  // Member buttons
+  const colors = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
+  members.forEach((m, i) => {
+    const btn = document.createElement('div');
+    btn.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';
+    const circle = document.createElement('div');
+    const isSelected = filterMember === m.id;
+    circle.style.cssText = 'width:52px;height:52px;border-radius:50%;background:' + colors[i%colors.length] + ';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:white;border:3px solid ' + (isSelected?'white':'transparent');
+    circle.textContent = (m.name||'?')[0].toUpperCase();
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:11px;font-weight:600;color:white;white-space:nowrap;max-width:56px;overflow:hidden;text-overflow:ellipsis;text-align:center';
+    label.textContent = m.name?.split(' ')[0] || m.email?.split('@')[0] || '?';
+    btn.appendChild(circle);
+    btn.appendChild(label);
+    btn.onclick = () => { filterMember = m.id; renderMemberFilter(); renderDayEvents(selectedDate); };
+    bar.appendChild(btn);
+  });
+}
+
 // ========== CALENDAR ==========
 function renderCalendar() {
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
@@ -530,7 +582,10 @@ function renderCalendar() {
     let cls = '';
     if (isToday(date)) cls = 'today';
     if (isSameDay(date, selectedDate)) cls += ' sel';
-    const evs = eventsForDay(date);
+    let evs = eventsForDay(date);
+  if (filterMember) evs = evs.filter(e => e.created_by === filterMember);
+  // Sort by time
+  evs.sort((a,b) => { if(a.all_day && !b.all_day) return -1; if(!a.all_day && b.all_day) return 1; return (a.start_time||'').localeCompare(b.start_time||''); });
     const el = dayEl(d, m, y, cls, evs);
     el.addEventListener('click', () => selectDay(date));
     grid.appendChild(el);
@@ -575,7 +630,7 @@ function renderDayEvents(date) {
       <div class="ev-dot" style="background:${cat.color}"></div>
       <div class="ev-info">
         <div class="ev-title">${ev.title}</div>
-        <div class="ev-meta">${ev.all_day ? 'Dia inteiro' : `${ev.start_time||''}–${ev.end_time||''}`}${ev.profiles?.name ? ' · ' + ev.profiles.name : ''}</div>
+        <div class="ev-meta">${ev.all_day ? 'Dia inteiro' : (ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time).slice(0,5) : '')}${ev.profiles?.name ? ' · ' + ev.profiles.name : ''}</div>
       </div>
       <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
     card.addEventListener('click', () => openEventModal(ev));
@@ -746,7 +801,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 7;
+const CURRENT_BUILD = 8;
 
 async function checkForUpdate() {
   try {
