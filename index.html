@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 16</div>
+      <div class="h-build">v 17</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -606,13 +606,8 @@ async function saveEvent() {
 
   // Notificar todos quando evento novo é criado
   if (!editId) {
-    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'sb_publishable_mwNqPy5JuqPPyt_HOAkNaQ_3LEnx73H'
-      },
-      body: JSON.stringify({ title: '📅 NossaAgenda', message: (profile?.name || 'Alguém') + ' adicionou: ' + title })
+    sb.functions.invoke('send-push', {
+      body: { title: '📅 NossaAgenda', message: (profile?.name || 'Alguém') + ' adicionou: ' + title }
     }).catch(() => {});
   }
 
@@ -891,18 +886,13 @@ async function sendPushToAll() {
   const msg   = document.getElementById('push-msg').value.trim();
   if (!msg) { toast('Escreve uma mensagem'); return; }
   try {
-    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'sb_publishable_mwNqPy5JuqPPyt_HOAkNaQ_3LEnx73H'
-      },
-      body: JSON.stringify({ title, message: msg })
+    const { data, error } = await sb.functions.invoke('send-push', {
+      body: { title, message: msg }
     });
-    const data = await res.json();
     closeModal('push-modal');
-    toast(data.sent > 0 ? 'Notificação enviada ✓ (' + data.sent + ')' : 'Problema: ' + JSON.stringify(data));
-  } catch(e) { closeModal('push-modal'); toast('Erro rede: ' + e.message); }
+    if (error) { toast('Erro: ' + error.message); return; }
+    toast(data?.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')' : 'Enviado (0 subscrições ativas)');
+  } catch(e) { closeModal('push-modal'); toast('Erro: ' + e.message); }
 }
 
 function b64ToUint8(b64) {
@@ -926,7 +916,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 16;
+const CURRENT_BUILD = 17;
 
 async function checkForUpdate() {
   try {
