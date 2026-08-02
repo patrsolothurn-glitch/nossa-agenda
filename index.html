@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 20</div>
+      <div class="h-build">v 21</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -607,11 +607,8 @@ async function saveEvent() {
 
   // Notificar todos quando evento novo é criado
   if (!editId) {
-    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_KEY },
-      body: JSON.stringify({ title: '📅 NossaAgenda', message: (profile?.name || 'Alguém') + ' adicionou: ' + title })
-    }).catch(() => {});
+    const _p = new URLSearchParams({ title: '📅 NossaAgenda', message: (profile?.name||'Alguém')+' adicionou: '+title, apikey: SUPABASE_KEY });
+    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push?' + _p).catch(() => {});
   }
 
   closeModal('ev-modal');
@@ -889,14 +886,11 @@ async function sendPushToAll() {
   const msg   = document.getElementById('push-msg').value.trim();
   if (!msg) { toast('Escreve uma mensagem'); return; }
   try {
-    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_KEY },
-      body: JSON.stringify({ title, message: msg })
-    });
+    const p = new URLSearchParams({ title, message: msg, apikey: SUPABASE_KEY });
+    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push?' + p);
     const data = await res.json();
     closeModal('push-modal');
-    toast(data.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')!' : 'Enviado');
+    toast(data.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')!' : 'Enviado: ' + JSON.stringify(data));
   } catch(e) { closeModal('push-modal'); toast('Erro: ' + e.message); }
 }
 
@@ -921,7 +915,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 20;
+const CURRENT_BUILD = 21;
 
 async function checkForUpdate() {
   try {
