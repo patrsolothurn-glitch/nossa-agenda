@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 11</div>
+      <div class="h-build">v 12</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -512,30 +512,13 @@ async function doRegister() {
 
 function shareInvite() {
   closeModal('user-menu');
-  document.getElementById('inv-name').value = '';
-  document.getElementById('inv-email').value = '';
-  document.getElementById('inv-pass').value = '';
-  openModal('invite-modal');
-}
-
-function sendWhatsAppInvite() {
-  const nome  = document.getElementById('inv-name').value.trim();
-  const email = document.getElementById('inv-email').value.trim();
-  const pass  = document.getElementById('inv-pass').value.trim();
-  if (!nome || !email || !pass) { toast('Preenche todos os campos'); return; }
   const quem = profile?.name?.split(' ')[0] || 'A família';
   const msg = encodeURIComponent(
     '👨‍👩‍👧 *NossaAgenda* — a nossa agenda familiar!\n\n' +
-    quem + ' convidou-te para a agenda da família! 📅\n\n' +
-    '👉 *Link:* https://nossaagenda.ch\n\n' +
-    '📧 *Email:* ' + email + '\n' +
-    '🔑 *Password:* ' + pass + '\n\n' +
-    '1️⃣ Abre o link\n' +
-    '2️⃣ Toca em *Criar conta*\n' +
-    '3️⃣ Usa o email e password acima\n\n' +
-    'Bem-vindo(a), ' + nome + '! 🎉'
+    quem + ' convidou-te para partilhar eventos e marcações em família 📅\n\n' +
+    '👉 https://nossaagenda.ch\n\n' +
+    'Abre o link, toca em *Criar conta*, regista-te com o teu email e já estás dentro! 🎉'
   );
-  closeModal('invite-modal');
   window.open('https://wa.me/?text=' + msg, '_blank');
 }
 
@@ -931,7 +914,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 11;
+const CURRENT_BUILD = 12;
 
 async function checkForUpdate() {
   try {
