@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 13</div>
+      <div class="h-build">v 14</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -606,12 +606,13 @@ async function saveEvent() {
 
   // Notificar todos quando evento novo é criado
   if (!editId) {
-    sb.functions.invoke('send-push', {
-      body: {
-        title: '📅 NossaAgenda',
-        message: `${profile?.name || 'Alguém'} adicionou: ${title}`
-      }
-    }).catch(() => {});
+    sb.auth.getSession().then(({ data: { session } }) => {
+      fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+        body: JSON.stringify({ title: '📅 NossaAgenda', message: (profile?.name || 'Alguém') + ' adicionou: ' + title })
+      }).catch(() => {});
+    });
   }
 
   closeModal('ev-modal');
@@ -888,9 +889,20 @@ async function sendPushToAll() {
   const title = document.getElementById('push-title').value.trim() || 'NossaAgenda';
   const msg   = document.getElementById('push-msg').value.trim();
   if (!msg) { toast('Escreve uma mensagem'); return; }
-  const { error } = await sb.functions.invoke('send-push', { body: { title, message: msg } });
-  closeModal('push-modal');
-  toast(error ? 'Erro ao enviar' : 'Notificação enviada ✓');
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session?.access_token
+      },
+      body: JSON.stringify({ title, message: msg })
+    });
+    const data = await res.json();
+    closeModal('push-modal');
+    toast(data.sent > 0 ? 'Notificação enviada ✓' : 'Erro ao enviar');
+  } catch { closeModal('push-modal'); toast('Erro ao enviar'); }
 }
 
 function b64ToUint8(b64) {
@@ -914,7 +926,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 13;
+const CURRENT_BUILD = 14;
 
 async function checkForUpdate() {
   try {
