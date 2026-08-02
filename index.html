@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 25</div>
+      <div class="h-build">v 26</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -578,9 +578,11 @@ async function loadEvents() {
   events = data || [];
 }
 
-function eventsForDay(date) {
+function eventsForDay(date, all = false) {
   const ds = toDateStr(date);
-  return events.filter(e => e.start_date <= ds && (e.end_date || e.start_date) >= ds);
+  let evs = events.filter(e => e.start_date <= ds && (e.end_date || e.start_date) >= ds);
+  if (filterMember && !all) evs = evs.filter(e => e.created_by === filterMember);
+  return evs;
 }
 
 async function saveEvent() {
@@ -657,7 +659,7 @@ function renderMemberFilter() {
   allLabel.textContent = 'Todos';
   allBtn.appendChild(allCircle);
   allBtn.appendChild(allLabel);
-  allBtn.onclick = () => { filterMember = null; renderMemberFilter(); renderDayEvents(selectedDate); };
+  allBtn.onclick = () => { filterMember = null; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
   bar.appendChild(allBtn);
 
   // Member buttons
@@ -674,7 +676,7 @@ function renderMemberFilter() {
     label.textContent = m.name?.split(' ')[0] || m.email?.split('@')[0] || '?';
     btn.appendChild(circle);
     btn.appendChild(label);
-    btn.onclick = () => { filterMember = m.id; renderMemberFilter(); renderDayEvents(selectedDate); };
+    btn.onclick = () => { filterMember = m.id; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
     bar.appendChild(btn);
   });
 }
@@ -695,8 +697,7 @@ function renderCalendar() {
     let cls = '';
     if (isToday(date)) cls = 'today';
     if (isSameDay(date, selectedDate)) cls += ' sel';
-    let evs = eventsForDay(date);
-  if (filterMember) evs = evs.filter(e => e.created_by === filterMember);
+    const evs = eventsForDay(date, true); // dots show all events
   // Sort by time
   evs.sort((a,b) => { if(a.all_day && !b.all_day) return -1; if(!a.all_day && b.all_day) return 1; return (a.start_time||'').localeCompare(b.start_time||''); });
     const el = dayEl(d, m, y, cls, evs);
@@ -929,7 +930,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 25;
+const CURRENT_BUILD = 26;
 
 async function checkForUpdate() {
   try {
