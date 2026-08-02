@@ -236,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 35</div>
+      <div class="h-build">v 36</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -311,6 +311,10 @@
       <textarea class="fi" id="ev-desc" placeholder="Informação adicional..." style="min-height:60px"></textarea>
     </div>
 
+    <div class="ff">
+      <label class="fl">Para quem é? <span style="font-weight:400;color:#94a3b8">(opcional)</span></label>
+      <div id="member-picker" style="display:flex;gap:10px;flex-wrap:wrap;padding:4px 0"></div>
+    </div>
     <button class="btn-p" onclick="saveEvent()">✓ Guardar</button>
     <button class="btn-d hidden" id="ev-del-btn" onclick="deleteEvent()">Eliminar evento</button>
     <button class="btn-ghost" onclick="closeModal('ev-modal')">Cancelar</button>
@@ -446,6 +450,7 @@ const ICONS = ["📅","🏠","🏥","🦷","🎂","✈️","🎓","⚽","🎉","
 
 // ========== STATE ==========
 let user = null, profile = null;
+let selMembers = [];
 let viewDate = new Date();
 let selectedDate = new Date();
 let events = [];
@@ -669,7 +674,12 @@ async function loadEvents() {
 function eventsForDay(date, all = false) {
   const ds = toDateStr(date);
   let evs = events.filter(e => e.start_date <= ds && (e.end_date || e.start_date) >= ds);
-  if (filterMember && !all) evs = evs.filter(e => e.created_by === filterMember);
+  if (filterMember && !all) {
+    evs = evs.filter(e => {
+      if (e.created_by === filterMember) return true;
+      try { return JSON.parse(e.assigned_to||'[]').includes(filterMember); } catch { return false; }
+    });
+  }
   return evs;
 }
 
@@ -688,6 +698,7 @@ async function saveEvent() {
     start_time: allDay ? null : (document.getElementById('ev-time-start-h').value || null),
     end_time:   allDay ? null : (document.getElementById('ev-time-end-h').value   || null),
     created_by: user.id,
+    assigned_to: JSON.stringify(selMembers),
   };
   // Verificar sessão antes de guardar
   const { data: { session } } = await sb.auth.getSession();
@@ -861,12 +872,26 @@ function renderDayEvents(date) {
     const creatorHtml = cName
       ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px">${avEl}<span>${cName.split(' ')[0]}</span></span>`
       : '';
+    // Avatares dos membros atribuídos
+    const ACOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
+    let assigned = []; try { assigned = JSON.parse(ev.assigned_to||'[]'); } catch {}
+    const assignedHtml = assigned.length ? `<span style="display:inline-flex;align-items:center;margin-left:6px">${
+      assigned.map(uid => {
+        const am = members.find(m => m.id === uid);
+        if (!am) return '';
+        const ai = members.findIndex(m => m.id === uid);
+        const ac = ai >= 0 ? ACOLORS[ai%ACOLORS.length] : '#94a3b8';
+        return am.avatar_url
+          ? `<img src="${am.avatar_url}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;border:1.5px solid white;margin-left:-3px">`
+          : `<span style="width:16px;height:16px;border-radius:50%;background:${ac};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;border:1.5px solid white;margin-left:-3px">${(am.name||'?')[0].toUpperCase()}</span>`;
+      }).join('')
+    }</span>` : '';
     const card = document.createElement('div'); card.className = 'ev-card';
     card.innerHTML = `
       <div class="ev-dot" style="background:${cat.color}"></div>
       <div class="ev-info">
         <div class="ev-title">${ev.title}</div>
-        <div class="ev-meta">${timeStr}${creatorHtml}</div>
+        <div class="ev-meta">${timeStr}${creatorHtml}${assignedHtml}</div>
       </div>
       <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
     card.addEventListener('click', () => openEventModal(ev));
@@ -916,6 +941,7 @@ function openEventModal(ev = null) {
     selIcon = '📅';
     document.getElementById('ev-title').value = '';
   }
+  selMembers = ev ? (() => { try { return JSON.parse(ev.assigned_to||'[]'); } catch{return [];} })() : [];
   document.getElementById('ev-desc').value  = ev?.description || '';
   const dateStr = ev?.start_date || toDateStr(selectedDate);
   document.getElementById('ev-date-start').value = dateStr;
@@ -927,6 +953,7 @@ function openEventModal(ev = null) {
   document.getElementById('ev-del-btn').classList.toggle('hidden', !ev);
   renderIconGrid();
   renderCatGrid();
+  renderMemberPicker();
   openModal('ev-modal');
 }
 
@@ -951,6 +978,35 @@ function renderCatGrid() {
     btn.textContent = cat.label;
     btn.onclick = () => { selCat = cat.id; renderCatGrid(); };
     grid.appendChild(btn);
+  });
+}
+
+function renderMemberPicker() {
+  const container = document.getElementById('member-picker');
+  if (!container) return;
+  container.innerHTML = '';
+  const COLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
+  if (!members.length) { container.innerHTML = '<div style="font-size:13px;color:#94a3b8">Sem membros</div>'; return; }
+  members.forEach((m, i) => {
+    const isSel = selMembers.includes(m.id);
+    const btn = document.createElement('div');
+    btn.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer';
+    const circle = document.createElement('div');
+    circle.style.cssText = `width:46px;height:46px;border-radius:50%;background:${COLORS[i%COLORS.length]};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;color:white;border:3px solid ${isSel?'#0ea5e9':'transparent'};overflow:hidden;transition:border .15s;box-shadow:${isSel?'0 0 0 2px #e0f2fe':''} `;
+    if (m.avatar_url) {
+      const img = document.createElement('img');
+      img.src = m.avatar_url; img.style.cssText = 'width:46px;height:46px;border-radius:50%;object-fit:cover';
+      circle.appendChild(img);
+    } else { circle.textContent = (m.name||'?')[0].toUpperCase(); }
+    const lbl = document.createElement('div');
+    lbl.style.cssText = `font-size:10px;font-weight:700;color:${isSel?'#0ea5e9':'#94a3b8'}`;
+    lbl.textContent = m.name?.split(' ')[0] || '?';
+    btn.appendChild(circle); btn.appendChild(lbl);
+    btn.onclick = () => {
+      selMembers = isSel ? selMembers.filter(id => id !== m.id) : [...selMembers, m.id];
+      renderMemberPicker();
+    };
+    container.appendChild(btn);
   });
 }
 
@@ -1158,7 +1214,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 35;
+const CURRENT_BUILD = 36;
 let updatePending = false;
 
 async function checkForUpdate() {
