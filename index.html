@@ -132,6 +132,11 @@
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
     .hidden{display:none!important}
+    .pass-wrap{position:relative}
+    .pass-wrap .fi{padding-right:46px}
+    .pass-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#94a3b8;padding:4px;line-height:1}
+    .reset-link{text-align:center;margin-top:10px}
+    .reset-link a{font-size:13px;color:#0ea5e9;cursor:pointer;text-decoration:none;font-weight:500}
   </style>
 </head>
 <body>
@@ -172,10 +177,14 @@
       </div>
       <div class="lf">
         <label>Password</label>
-        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"
-          onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="pass-wrap">
+          <input type="password" id="l-pass" class="fi" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()" style="width:100%">
+          <button type="button" class="pass-eye" onclick="togglePass('l-pass',this)">👁</button>
+        </div>
       </div>
       <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+      <div class="reset-link"><a onclick="doResetPass()">Esqueceste a password?</a></div>
     </div>
 
     <!-- REGISTER -->
@@ -190,12 +199,18 @@
       </div>
       <div class="lf">
         <label>Password</label>
-        <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres">
+        <div class="pass-wrap">
+          <input type="password" id="r-pass" class="fi" placeholder="Mínimo 6 caracteres" style="width:100%">
+          <button type="button" class="pass-eye" onclick="togglePass('r-pass',this)">👁</button>
+        </div>
       </div>
       <div class="lf">
         <label>Confirmar password</label>
-        <input type="password" id="r-pass2" placeholder="Repete a password"
-          onkeydown="if(event.key==='Enter')doRegister()">
+        <div class="pass-wrap">
+          <input type="password" id="r-pass2" class="fi" placeholder="Repete a password" style="width:100%"
+            onkeydown="if(event.key==='Enter')doRegister()">
+          <button type="button" class="pass-eye" onclick="togglePass('r-pass2',this)">👁</button>
+        </div>
       </div>
       <button class="login-btn" id="register-btn" onclick="doRegister()">Criar conta</button>
     </div>
@@ -219,7 +234,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 29</div>
+      <div class="h-build">v 30</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -560,6 +575,32 @@ async function forceRefresh() {
     await Promise.all(keys.map(k => caches.delete(k)));
   } catch {}
   setTimeout(() => window.location.reload(true), 500);
+}
+
+function togglePass(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+async function doResetPass() {
+  const email = document.getElementById('l-email').value.trim();
+  const err = document.getElementById('login-err');
+  if (!email) {
+    err.style.cssText = 'display:block;color:#f59e0b';
+    err.textContent = 'Escreve o email no campo acima primeiro.';
+    return;
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://nossaagenda.ch'
+  });
+  if (error) {
+    err.style.cssText = 'display:block;color:#ef4444';
+    err.textContent = 'Erro: ' + error.message;
+  } else {
+    err.style.cssText = 'display:block;color:#10b981';
+    err.textContent = '✓ Email de recuperação enviado! Verifica a caixa de entrada.';
+  }
 }
 
 async function doLogout() {
@@ -1008,7 +1049,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 29;
+const CURRENT_BUILD = 30;
 
 async function checkForUpdate() {
   try {
