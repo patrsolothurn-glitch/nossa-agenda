@@ -181,7 +181,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 3</div>
+      <div class="h-build">v 4</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -325,7 +325,7 @@
 <!-- ===== TOAST ===== -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@latest/dist/umd/supabase.js"></script>
 <script>
 // ========== CONFIG ==========
 const SUPABASE_URL  = 'https://hfpvbemoxgvtmerdnufb.supabase.co';
@@ -457,6 +457,10 @@ async function saveEvent() {
     end_time:   allDay ? null : (document.getElementById('ev-time-end').value   || null),
     created_by: user.id,
   };
+  // Verificar sessão antes de guardar
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { toast('Sessão expirada, entra novamente'); showLogin(); return; }
+
   const { error } = editId
     ? await sb.from('events').update(payload).eq('id', editId)
     : await sb.from('events').insert(payload);
@@ -721,7 +725,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 3;
+const CURRENT_BUILD = 4;
 
 async function checkForUpdate() {
   try {
