@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 24</div>
+      <div class="h-build">v 25</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -284,32 +284,13 @@
 
     <div class="ff hidden" id="time-fields">
       <label class="fl">Hora início</label>
-      <div class="row2">
-        <select class="fi" id="ev-time-start-h" style="flex:1">
-          <option value="">H</option>
-          <option value="00">00h</option><option value="01">01h</option><option value="02">02h</option><option value="03">03h</option><option value="04">04h</option><option value="05">05h</option><option value="06">06h</option><option value="07">07h</option><option value="08">08h</option><option value="09">09h</option><option value="10">10h</option><option value="11">11h</option><option value="12">12h</option><option value="13">13h</option><option value="14">14h</option><option value="15">15h</option><option value="16">16h</option><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option><option value="22">22h</option><option value="23">23h</option>
-        </select>
-        <select class="fi" id="ev-time-start-m" style="flex:1">
-          <option value="00">00m</option>
-          <option value="15">15m</option>
-          <option value="30">30m</option>
-          <option value="45">45m</option>
-        </select>
-      </div>
-      <label class="fl" style="margin-top:8px">Hora fim (opcional)</label>
-      <div class="row2">
-        <select class="fi" id="ev-time-end-h" style="flex:1">
-          <option value="">H</option>
-          <option value="00">00h</option><option value="01">01h</option><option value="02">02h</option><option value="03">03h</option><option value="04">04h</option><option value="05">05h</option><option value="06">06h</option><option value="07">07h</option><option value="08">08h</option><option value="09">09h</option><option value="10">10h</option><option value="11">11h</option><option value="12">12h</option><option value="13">13h</option><option value="14">14h</option><option value="15">15h</option><option value="16">16h</option><option value="17">17h</option><option value="18">18h</option><option value="19">19h</option><option value="20">20h</option><option value="21">21h</option><option value="22">22h</option><option value="23">23h</option>
-        </select>
-        <select class="fi" id="ev-time-end-m" style="flex:1">
-          <option value="00">00m</option>
-          <option value="15">15m</option>
-          <option value="30">30m</option>
-          <option value="45">45m</option>
-        </select>
-      </div>
+      <input type="time" class="fi" id="ev-time-start-h" style="width:100%;margin-bottom:10px">
+      <label class="fl">Hora fim (opcional)</label>
+      <input type="time" class="fi" id="ev-time-end-h" style="width:100%">
     </div>
+
+    <div class="ff">
+      <label class="fl">Notaiv>
 
     <div class="ff">
       <label class="fl">Nota (opcional)</label>
@@ -614,8 +595,8 @@ async function saveEvent() {
     start_date: sd,
     end_date: document.getElementById('ev-date-end').value || sd,
     all_day: allDay,
-    start_time: allDay ? null : (() => { const h=document.getElementById('ev-time-start-h').value, m=document.getElementById('ev-time-start-m').value; return h ? h+':'+m+':00' : null; })(),
-    end_time:   allDay ? null : (() => { const h=document.getElementById('ev-time-end-h').value, m=document.getElementById('ev-time-end-m').value; return h ? h+':'+m+':00' : null; })(),
+    start_time: allDay ? null : (document.getElementById('ev-time-start-h').value || null),
+    end_time:   allDay ? null : (document.getElementById('ev-time-end-h').value   || null),
     created_by: user.id,
   };
   // Verificar sessão antes de guardar
@@ -787,11 +768,8 @@ function openEventModal(ev = null) {
   document.getElementById('ev-desc').value  = ev?.description || '';
   document.getElementById('ev-date-start').value = ev?.start_date || toDateStr(selectedDate);
   document.getElementById('ev-date-end').value   = ev?.end_date || '';
-  const st = ev?.start_time || ''; const et = ev?.end_time || '';
-  document.getElementById('ev-time-start-h').value = st ? st.slice(0,2) : '';
-  document.getElementById('ev-time-start-m').value = st ? (st.slice(3,5).match(/^(00|15|30|45)$/) ? st.slice(3,5) : '00') : '00';
-  document.getElementById('ev-time-end-h').value = et ? et.slice(0,2) : '';
-  document.getElementById('ev-time-end-m').value = et ? (et.slice(3,5).match(/^(00|15|30|45)$/) ? et.slice(3,5) : '00') : '00';
+  document.getElementById('ev-time-start-h').value = ev?.start_time?.slice(0,5) || '';
+  document.getElementById('ev-time-end-h').value   = ev?.end_time?.slice(0,5) || '';
   document.getElementById('allday-tog').className = 'tog ' + (allDay ? 'on' : '');
 document.getElementById('time-fields').classList.toggle('hidden', allDay);
   document.getElementById('ev-del-btn').classList.toggle('hidden', !ev);
@@ -951,7 +929,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 24;
+const CURRENT_BUILD = 25;
 
 async function checkForUpdate() {
   try {
