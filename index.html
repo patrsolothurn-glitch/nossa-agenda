@@ -236,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 36</div>
+      <div class="h-build">v 37</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -362,6 +362,10 @@
     <div class="sec-title">Últimos eventos</div>
     <div id="admin-events"></div>
 
+    <div class="sec-title">Membros sem conta</div>
+    <div id="admin-vmembers"></div>
+    <button class="btn-notify" onclick="openAddVirtualMember()">➕ Adicionar membro sem conta</button>
+
     <button class="btn-ghost" style="margin-top:20px" onclick="closeModal('admin-panel')">Fechar</button>
   </div>
 </div>
@@ -423,6 +427,24 @@
   <button class="update-btn" onclick="applyUpdate()">Atualizar</button>
 </div>
 
+<!-- ===== VIRTUAL MEMBER MODAL ===== -->
+<div class="overlay" id="vm-modal" onclick="if(event.target===this)closeModal('vm-modal')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="sh-title">👤 Novo membro sem conta</div>
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px">
+      <div id="vm-av-preview" onclick="pickVmPhoto()" style="width:80px;height:80px;border-radius:50%;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;overflow:hidden;border:3px dashed #0ea5e9">📷</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:6px;cursor:pointer" onclick="pickVmPhoto()">Toca para adicionar foto</div>
+    </div>
+    <div class="ff">
+      <label class="fl">Nome</label>
+      <input type="text" class="fi" id="vm-name" placeholder="Ex: Alicia">
+    </div>
+    <button class="btn-p" onclick="saveVirtualMember()">✓ Guardar</button>
+    <button class="btn-ghost" onclick="closeModal('vm-modal')">Cancelar</button>
+  </div>
+</div>
+
 <!-- ===== TOAST ===== -->
 <div class="toast" id="toast"></div>
 
@@ -451,6 +473,8 @@ const ICONS = ["📅","🏠","🏥","🦷","🎂","✈️","🎓","⚽","🎉","
 // ========== STATE ==========
 let user = null, profile = null;
 let selMembers = [];
+let virtualMembers = []; // membros sem conta (ex: Alicia)
+let vmPhotoData = null;  // foto temporária ao criar membro virtual
 let viewDate = new Date();
 let selectedDate = new Date();
 let events = [];
@@ -479,6 +503,7 @@ async function boot() {
   await loadProfile();
   showApp();
   await loadMembers();
+  await loadVirtualMembers();
   await loadEvents();
   setupRealtime();
   renderCalendar();
@@ -746,10 +771,19 @@ async function deleteEvent() {
 let members = [];
 let filterMember = null;
 
+function getAllMembers() {
+  return [...members, ...virtualMembers.map(vm => ({...vm, is_virtual: true}))];
+}
+
 async function loadMembers() {
   const { data } = await sb.from('profiles').select('id,name,email,is_admin,avatar_url').order('name');
   members = (data || []).filter(m => !m.is_admin);
   renderMemberFilter();
+}
+
+async function loadVirtualMembers() {
+  const { data } = await sb.from('virtual_members').select('*').order('name');
+  virtualMembers = data || [];
 }
 
 function renderMemberFilter() {
@@ -771,9 +805,9 @@ function renderMemberFilter() {
   allBtn.onclick = () => { filterMember = null; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
   bar.appendChild(allBtn);
 
-  // Member buttons
+  // Member buttons (reais + virtuais)
   const colors = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-  members.forEach((m, i) => {
+  getAllMembers().forEach((m, i) => {
     const btn = document.createElement('div');
     btn.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';
     const circle = document.createElement('div');
@@ -847,10 +881,10 @@ function selectDay(date) {
 
 function creatorInfo(ev) {
   const MCOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-  const member = members.find(m => m.id === ev.created_by);
+  const member = getAllMembers().find(m => m.id === ev.created_by);
   const name = ev.profiles?.name || member?.name || null;
   const avatarUrl = ev.profiles?.avatar_url || member?.avatar_url || null;
-  const idx = members.findIndex(m => m.id === ev.created_by);
+  const idx = getAllMembers().findIndex(m => m.id === ev.created_by);
   const color = idx >= 0 ? MCOLORS[idx % MCOLORS.length] : '#94a3b8';
   return { name, color, avatarUrl };
 }
@@ -877,9 +911,9 @@ function renderDayEvents(date) {
     let assigned = []; try { assigned = JSON.parse(ev.assigned_to||'[]'); } catch {}
     const assignedHtml = assigned.length ? `<span style="display:inline-flex;align-items:center;margin-left:6px">${
       assigned.map(uid => {
-        const am = members.find(m => m.id === uid);
+        const am = getAllMembers().find(m => m.id === uid);
         if (!am) return '';
-        const ai = members.findIndex(m => m.id === uid);
+        const ai = getAllMembers().findIndex(m => m.id === uid);
         const ac = ai >= 0 ? ACOLORS[ai%ACOLORS.length] : '#94a3b8';
         return am.avatar_url
           ? `<img src="${am.avatar_url}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;border:1.5px solid white;margin-left:-3px">`
@@ -986,8 +1020,9 @@ function renderMemberPicker() {
   if (!container) return;
   container.innerHTML = '';
   const COLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-  if (!members.length) { container.innerHTML = '<div style="font-size:13px;color:#94a3b8">Sem membros</div>'; return; }
-  members.forEach((m, i) => {
+  const allM = getAllMembers();
+  if (!allM.length) { container.innerHTML = '<div style="font-size:13px;color:#94a3b8">Sem membros</div>'; return; }
+  allM.forEach((m, i) => {
     const isSel = selMembers.includes(m.id);
     const btn = document.createElement('div');
     btn.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer';
@@ -1049,6 +1084,19 @@ async function loadAdminData() {
   // Events
   const { data: evs } = await sb.from('events')
     .select('*, profiles(name,is_admin,avatar_url)').order('start_date', { ascending: false }).limit(15);
+  // Membros virtuais
+  const vmel = document.getElementById('admin-vmembers'); vmel.innerHTML = '';
+  virtualMembers.forEach(vm => {
+    const row = document.createElement('div'); row.className = 'mb-row';
+    const avHtml = vm.avatar_url
+      ? `<img src="${vm.avatar_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+      : `<div class="mb-av">${(vm.name||'?')[0].toUpperCase()}</div>`;
+    row.innerHTML = `${avHtml}
+      <div style="flex:1"><div class="mb-name">${vm.name}</div><div class="mb-email" style="color:#94a3b8;font-size:12px">sem conta · só para eventos</div></div>
+      <button onclick="deleteVirtualMember('${vm.id}')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer">✕</button>`;
+    vmel.appendChild(row);
+  });
+
   const eel = document.getElementById('admin-events'); eel.innerHTML = '';
   (evs || []).forEach(ev => {
     const cat = CATS.find(c => c.id === ev.category) || CATS[0];
@@ -1106,6 +1154,51 @@ async function sendPushToAll() {
     closeModal('push-modal');
     toast(data.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')!' : 'Enviado: ' + JSON.stringify(data));
   } catch(e) { closeModal('push-modal'); toast('Erro: ' + e.message); }
+}
+
+// ========== MEMBROS VIRTUAIS ==========
+function openAddVirtualMember() {
+  vmPhotoData = null;
+  document.getElementById('vm-name').value = '';
+  document.getElementById('vm-av-preview').innerHTML = '📷';
+  document.getElementById('vm-av-preview').style.background = '#e0f2fe';
+  closeModal('admin-panel');
+  setTimeout(() => openModal('vm-modal'), 200);
+}
+
+function pickVmPhoto() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    vmPhotoData = await resizeImage(file, 256);
+    const prev = document.getElementById('vm-av-preview');
+    prev.innerHTML = `<img src="${vmPhotoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`;
+  };
+  input.click();
+}
+
+async function saveVirtualMember() {
+  const name = document.getElementById('vm-name').value.trim();
+  if (!name) { toast('Escreve o nome'); return; }
+  const { error } = await sb.from('virtual_members').insert({
+    name, avatar_url: vmPhotoData || null, created_by: user.id
+  });
+  if (error) { toast('Erro: ' + error.message); return; }
+  await loadVirtualMembers();
+  renderMemberFilter();
+  closeModal('vm-modal');
+  toast('Membro adicionado ✓');
+  setTimeout(() => openAdminPanel(), 200);
+}
+
+async function deleteVirtualMember(id) {
+  if (!confirm('Remover este membro?')) return;
+  await sb.from('virtual_members').delete().eq('id', id);
+  await loadVirtualMembers();
+  renderMemberFilter();
+  await loadAdminData();
+  toast('Membro removido');
 }
 
 function sendPushSilent(message) {
@@ -1214,7 +1307,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 36;
+const CURRENT_BUILD = 37;
 let updatePending = false;
 
 async function checkForUpdate() {
