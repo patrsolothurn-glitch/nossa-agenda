@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 27</div>
+      <div class="h-build">v 28</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -579,12 +579,22 @@ async function loadEvents() {
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
   const start = new Date(y, m, 1).toISOString().split('T')[0];
   const end   = new Date(y, m + 1, 0).toISOString().split('T')[0];
-  const { data } = await sb.from('events')
+  const { data, error } = await sb.from('events')
     .select('*, profiles(name,is_admin)')
     .gte('start_date', start)
     .lte('start_date', end)
     .order('start_date');
-  events = data || [];
+  if (error) {
+    console.warn('loadEvents join error, a tentar sem profiles:', error.message);
+    const { data: data2 } = await sb.from('events')
+      .select('*')
+      .gte('start_date', start)
+      .lte('start_date', end)
+      .order('start_date');
+    events = data2 || [];
+  } else {
+    events = data || [];
+  }
 }
 
 function eventsForDay(date, all = false) {
@@ -626,7 +636,15 @@ async function saveEvent() {
   }
 
   closeModal('ev-modal');
+  // Navega para a data do evento e reset do filtro para mostrar tudo
+  const eventDate = new Date(sd + 'T00:00:00');
+  if (viewDate.getFullYear() !== eventDate.getFullYear() || viewDate.getMonth() !== eventDate.getMonth()) {
+    viewDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
+  }
+  selectedDate = eventDate;
+  filterMember = null;
   await loadEvents();
+  renderMemberFilter();
   renderCalendar();
   renderDayEvents(selectedDate);
   toast(editId ? 'Evento atualizado ✓' : 'Evento criado ✓');
@@ -990,7 +1008,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 27;
+const CURRENT_BUILD = 28;
 
 async function checkForUpdate() {
   try {
