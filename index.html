@@ -139,6 +139,17 @@
     .reset-link a{font-size:13px;color:#0ea5e9;cursor:pointer;text-decoration:none;font-weight:500}
     .av-photo{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
     .av-cam-btn{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;background:#0ea5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid white;font-size:10px;z-index:1}
+    .view-toggle{display:flex;background:#f1f5f9;border-radius:20px;padding:3px;gap:2px;margin-bottom:12px}
+    .vt-btn{flex:1;padding:7px 0;border:none;border-radius:17px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;color:#64748b;background:transparent}
+    .vt-btn.active{background:#0ea5e9;color:white}
+    .week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+    .week-day{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border-radius:12px;cursor:pointer;transition:background .1s}
+    .week-day:active{background:#f1f5f9}
+    .week-day.today .wd-num{background:#0ea5e9;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+    .week-day.sel{background:#e0f2fe}
+    .wd-dow{font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:3px}
+    .wd-num{font-size:15px;font-weight:700;color:#1e293b;line-height:1}
+    .week-day-label{font-size:13px;font-weight:700;color:#475569;margin:14px 0 7px;padding:0 2px}
   </style>
 </head>
 <body>
@@ -236,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 39</div>
+      <div class="h-build">v 40</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -246,12 +257,18 @@
 
   <!-- Calendar -->
   <div class="cal-section">
-    <div class="cal-nav">
-      <button onclick="changeMonth(-1)">‹</button>
-      <span class="cal-month" id="cal-month" onclick="goToToday()" style="cursor:pointer" title="Ir para hoje"></span>
-      <button onclick="changeMonth(1)">›</button>
+    <div class="view-toggle">
+      <button class="vt-btn active" id="btn-month" onclick="setViewMode('month')">Mês</button>
+      <button class="vt-btn" id="btn-week" onclick="setViewMode('week')">Semana</button>
     </div>
-    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-nav">
+      <button onclick="navigatePrev()">‹</button>
+      <span class="cal-month" id="cal-month" onclick="goToToday()" style="cursor:pointer" title="Ir para hoje"></span>
+      <button onclick="navigateNext()">›</button>
+    </div>
+    <div id="cal-grid-wrap">
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
   </div>
 
   <!-- Events -->
@@ -483,6 +500,7 @@ let allDay = false;
 let selCat = "familia";
 let selIcon = "📅";
 let logoTaps = 0, logoTimer = null;
+let viewMode = 'month';
 
 // ========== INIT ==========
 (async () => {
@@ -507,8 +525,8 @@ async function boot() {
   renderMemberFilter(); // garante que membros virtuais aparecem no filtro
   await loadEvents();
   setupRealtime();
-  renderCalendar();
-  renderDayEvents(selectedDate);
+  if (viewMode === 'week') renderWeekView();
+  else { renderCalendar(); renderDayEvents(selectedDate); }
 }
 
 // ========== AUTH ==========
@@ -876,8 +894,8 @@ function dayEl(d, m, y, cls, evs = []) {
 
 function selectDay(date) {
   selectedDate = date;
-  renderCalendar();
-  renderDayEvents(date);
+  if (viewMode === 'week') renderWeekView();
+  else { renderCalendar(); renderDayEvents(date); }
 }
 
 function creatorInfo(ev) {
@@ -890,6 +908,42 @@ function creatorInfo(ev) {
   return { name, color, avatarUrl };
 }
 
+function createEventCard(ev) {
+  const cat = CATS.find(c => c.id === ev.category) || CATS[0];
+  const { name: cName, color: cColor, avatarUrl: cAv } = creatorInfo(ev);
+  const timeStr = ev.all_day ? 'Dia inteiro' : ((ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time||'').slice(0,5) : ''));
+  const avEl = cAv
+    ? `<img src="${cAv}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;flex-shrink:0;vertical-align:middle">`
+    : `<span style="width:15px;height:15px;border-radius:50%;background:${cColor};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;flex-shrink:0">${cName?.[0]?.toUpperCase()||'?'}</span>`;
+  const creatorHtml = cName
+    ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px">${avEl}<span>${cName.split(' ')[0]}</span></span>`
+    : '';
+  const ACOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
+  let assigned = []; try { assigned = JSON.parse(ev.assigned_to||'[]'); } catch {}
+  const assignedHtml = assigned.length ? `<span style="display:inline-flex;align-items:center;margin-left:6px">${
+    assigned.map(uid => {
+      const am = getAllMembers().find(m => m.id === uid);
+      if (!am) return '';
+      const ai = getAllMembers().findIndex(m => m.id === uid);
+      const ac = ai >= 0 ? ACOLORS[ai%ACOLORS.length] : '#94a3b8';
+      return am.avatar_url
+        ? `<img src="${am.avatar_url}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;border:1.5px solid white;margin-left:-3px">`
+        : `<span style="width:16px;height:16px;border-radius:50%;background:${ac};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;border:1.5px solid white;margin-left:-3px">${(am.name||'?')[0].toUpperCase()}</span>`;
+    }).join('')
+  }</span>` : '';
+  const card = document.createElement('div');
+  card.className = 'ev-card';
+  card.innerHTML = `
+    <div class="ev-dot" style="background:${cat.color}"></div>
+    <div class="ev-info">
+      <div class="ev-title">${ev.title}</div>
+      <div class="ev-meta">${timeStr}${creatorHtml}${assignedHtml}</div>
+    </div>
+    <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
+  card.addEventListener('click', () => openEventModal(ev));
+  return card;
+}
+
 function renderDayEvents(date) {
   const evs = eventsForDay(date);
   const label = isToday(date) ? 'Hoje' : `${date.getDate()} de ${MONTHS[date.getMonth()]}`;
@@ -897,63 +951,123 @@ function renderDayEvents(date) {
   const list = document.getElementById('ev-list');
   list.innerHTML = '';
   if (!evs.length) { list.innerHTML = '<div class="no-ev">📅 Sem eventos neste dia</div>'; return; }
-  evs.forEach(ev => {
-    const cat = CATS.find(c => c.id === ev.category) || CATS[0];
-    const { name: cName, color: cColor, avatarUrl: cAv } = creatorInfo(ev);
-    const timeStr = ev.all_day ? 'Dia inteiro' : ((ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time||'').slice(0,5) : ''));
-    const avEl = cAv
-      ? `<img src="${cAv}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;flex-shrink:0;vertical-align:middle">`
-      : `<span style="width:15px;height:15px;border-radius:50%;background:${cColor};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;flex-shrink:0">${cName?.[0]?.toUpperCase()||'?'}</span>`;
-    const creatorHtml = cName
-      ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px">${avEl}<span>${cName.split(' ')[0]}</span></span>`
-      : '';
-    // Avatares dos membros atribuídos
-    const ACOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-    let assigned = []; try { assigned = JSON.parse(ev.assigned_to||'[]'); } catch {}
-    const assignedHtml = assigned.length ? `<span style="display:inline-flex;align-items:center;margin-left:6px">${
-      assigned.map(uid => {
-        const am = getAllMembers().find(m => m.id === uid);
-        if (!am) return '';
-        const ai = getAllMembers().findIndex(m => m.id === uid);
-        const ac = ai >= 0 ? ACOLORS[ai%ACOLORS.length] : '#94a3b8';
-        return am.avatar_url
-          ? `<img src="${am.avatar_url}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;border:1.5px solid white;margin-left:-3px">`
-          : `<span style="width:16px;height:16px;border-radius:50%;background:${ac};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;border:1.5px solid white;margin-left:-3px">${(am.name||'?')[0].toUpperCase()}</span>`;
-      }).join('')
-    }</span>` : '';
-    const card = document.createElement('div'); card.className = 'ev-card';
-    card.innerHTML = `
-      <div class="ev-dot" style="background:${cat.color}"></div>
-      <div class="ev-info">
-        <div class="ev-title">${ev.title}</div>
-        <div class="ev-meta">${timeStr}${creatorHtml}${assignedHtml}</div>
-      </div>
-      <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
-    card.addEventListener('click', () => openEventModal(ev));
-    list.appendChild(card);
-  });
+  evs.forEach(ev => list.appendChild(createEventCard(ev)));
 }
+
+// ── Navegação ──
+async function navigatePrev() { viewMode === 'week' ? await changeWeek(-1) : await changeMonth(-1); }
+async function navigateNext() { viewMode === 'week' ? await changeWeek(1)  : await changeMonth(1); }
 
 async function changeMonth(dir) {
   viewDate.setMonth(viewDate.getMonth() + dir);
-  // Atualiza selectedDate para o novo mês
   const today = new Date();
-  if (viewDate.getFullYear() === today.getFullYear() && viewDate.getMonth() === today.getMonth()) {
-    selectedDate = new Date();
-  } else {
-    selectedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
-  }
+  selectedDate = (viewDate.getFullYear()===today.getFullYear()&&viewDate.getMonth()===today.getMonth())
+    ? new Date() : new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
   await loadEvents();
-  renderCalendar();
-  renderDayEvents(selectedDate);
+  if (viewMode === 'week') renderWeekView();
+  else { renderCalendar(); renderDayEvents(selectedDate); }
+}
+
+async function changeWeek(dir) {
+  selectedDate = new Date(selectedDate);
+  selectedDate.setDate(selectedDate.getDate() + dir * 7);
+  if (viewDate.getMonth() !== selectedDate.getMonth() || viewDate.getFullYear() !== selectedDate.getFullYear()) {
+    viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    await loadEvents();
+  }
+  renderWeekView();
 }
 
 async function goToToday() {
   viewDate = new Date();
   selectedDate = new Date();
   await loadEvents();
-  renderCalendar();
-  renderDayEvents(selectedDate);
+  if (viewMode === 'week') { renderWeekView(); } else { renderCalendar(); renderDayEvents(selectedDate); }
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('btn-month').classList.toggle('active', mode === 'month');
+  document.getElementById('btn-week').classList.toggle('active', mode === 'week');
+  if (mode === 'week') renderWeekView();
+  else { renderCalendar(); renderDayEvents(selectedDate); }
+}
+
+// ── Vista semanal ──
+function renderWeekView() {
+  const startOfWeek = new Date(selectedDate);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+
+  // Header: "3–9 de Agosto"
+  const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 6);
+  const sameMonth = startOfWeek.getMonth() === endOfWeek.getMonth();
+  const hdr = sameMonth
+    ? `${startOfWeek.getDate()}–${endOfWeek.getDate()} de ${MONTHS[endOfWeek.getMonth()]}`
+    : `${startOfWeek.getDate()} ${MONTHS[startOfWeek.getMonth()]} – ${endOfWeek.getDate()} ${MONTHS[endOfWeek.getMonth()]}`;
+  document.getElementById('cal-month').textContent = hdr;
+
+  // Week strip
+  const wrap = document.getElementById('cal-grid-wrap');
+  wrap.innerHTML = '<div class="week-strip" id="week-strip"></div>';
+  const strip = document.getElementById('week-strip');
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(date.getDate() + i);
+    const isTod = isToday(date);
+    const isSel = isSameDay(date, selectedDate);
+    const tile = document.createElement('div');
+    tile.className = 'week-day' + (isTod ? ' today' : '') + (isSel ? ' sel' : '');
+
+    const dow = document.createElement('div'); dow.className = 'wd-dow';
+    dow.textContent = DAYS[date.getDay()][0]; // 1 letra: D S T Q Q S S
+    tile.appendChild(dow);
+
+    const num = document.createElement('div'); num.className = 'wd-num';
+    num.textContent = date.getDate();
+    tile.appendChild(num);
+
+    const evs = eventsForDay(date, true);
+    if (evs.length) {
+      const dots = document.createElement('div'); dots.className = 'day-dots'; dots.style.marginTop = '3px';
+      evs.slice(0,3).forEach(e => {
+        const cat = CATS.find(c=>c.id===e.category)||CATS[0];
+        const dot = document.createElement('div'); dot.className='ddot'; dot.style.background=cat.color;
+        dots.appendChild(dot);
+      });
+      tile.appendChild(dots);
+    }
+
+    tile.addEventListener('click', () => { selectedDate = date; renderWeekView(); });
+    strip.appendChild(tile);
+  }
+
+  // Events para a semana toda
+  renderWeekEvents(startOfWeek);
+}
+
+function renderWeekEvents(startOfWeek) {
+  const list = document.getElementById('ev-list');
+  document.getElementById('ev-header').textContent = '';
+  list.innerHTML = '';
+  let hasAny = false;
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(date.getDate() + i);
+    const evs = eventsForDay(date);
+    if (!evs.length) continue;
+    hasAny = true;
+
+    const isSel = isSameDay(date, selectedDate);
+    const lbl = document.createElement('div');
+    lbl.className = 'week-day-label';
+    lbl.style.color = isSel ? '#0ea5e9' : '#475569';
+    lbl.textContent = (isToday(date) ? '📍 Hoje' : `${DAYS[date.getDay()]}, ${date.getDate()} de ${MONTHS[date.getMonth()]}`);
+    list.appendChild(lbl);
+    evs.forEach(ev => list.appendChild(createEventCard(ev)));
+  }
+  if (!hasAny) list.innerHTML = '<div class="no-ev">📅 Sem eventos esta semana</div>';
 }
 
 // ========== EVENT MODAL ==========
@@ -1119,8 +1233,8 @@ async function adminDelEv(id) {
   toast('Eliminado');
   await loadAdminData();
   await loadEvents();
-  renderCalendar();
-  renderDayEvents(selectedDate);
+  if (viewMode === 'week') renderWeekView();
+  else { renderCalendar(); renderDayEvents(selectedDate); }
 }
 
 function showMemberInfo() {
@@ -1308,7 +1422,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 39;
+const CURRENT_BUILD = 40;
 let updatePending = false;
 
 async function checkForUpdate() {
