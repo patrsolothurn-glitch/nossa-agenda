@@ -152,16 +152,54 @@
   <h1 class="login-title">NossaAgenda</h1>
   <p class="login-sub">A agenda da nossa família</p>
   <div class="login-card">
-    <div class="lf">
-      <label>Email</label>
-      <input type="email" id="l-email" placeholder="email@exemplo.com" autocomplete="email">
+    <!-- Tabs -->
+    <div style="display:flex;border-radius:12px;background:#f1f5f9;padding:4px;margin-bottom:20px;gap:4px">
+      <button id="tab-login" onclick="switchTab('login')"
+        style="flex:1;padding:10px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;background:#0ea5e9;color:white;transition:all .2s">
+        Entrar
+      </button>
+      <button id="tab-register" onclick="switchTab('register')"
+        style="flex:1;padding:10px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;transition:all .2s">
+        Criar conta
+      </button>
     </div>
-    <div class="lf">
-      <label>Password</label>
-      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- LOGIN -->
+    <div id="form-login">
+      <div class="lf">
+        <label>Email</label>
+        <input type="email" id="l-email" placeholder="email@exemplo.com" autocomplete="email">
+      </div>
+      <div class="lf">
+        <label>Password</label>
+        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
     </div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+
+    <!-- REGISTER -->
+    <div id="form-register" style="display:none">
+      <div class="lf">
+        <label>Nome</label>
+        <input type="text" id="r-name" placeholder="O teu nome">
+      </div>
+      <div class="lf">
+        <label>Email</label>
+        <input type="email" id="r-email" placeholder="email@exemplo.com" autocomplete="email">
+      </div>
+      <div class="lf">
+        <label>Password</label>
+        <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="lf">
+        <label>Confirmar password</label>
+        <input type="password" id="r-pass2" placeholder="Repete a password"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="login-btn" id="register-btn" onclick="doRegister()">Criar conta</button>
+    </div>
+
     <p class="login-err" id="login-err"></p>
   </div>
 </div>
@@ -181,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 8</div>
+      <div class="h-build">v 9</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -318,6 +356,10 @@
       <div class="mi-icon" style="background:#e0f2fe">🔔</div>
       <span>Ativar notificações</span>
     </div>
+    <div class="menu-item" onclick="shareInvite()">
+      <div class="mi-icon" style="background:#f0fdf4">👤</div>
+      <span>Convidar membro</span>
+    </div>
     <div class="menu-item" onclick="forceRefresh()">
       <div class="mi-icon" style="background:#f0fdf4">🔄</div>
       <span>Forçar atualização</span>
@@ -407,6 +449,55 @@ function showApp() {
   document.getElementById('h-avatar').textContent = displayName[0].toUpperCase();
   document.getElementById('big-av').textContent = displayName[0].toUpperCase();
   document.getElementById('um-email').textContent = user?.email || '';
+}
+
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('form-login').style.display    = isLogin ? 'block' : 'none';
+  document.getElementById('form-register').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tab-login').style.background    = isLogin ? '#0ea5e9' : 'transparent';
+  document.getElementById('tab-login').style.color         = isLogin ? 'white' : '#64748b';
+  document.getElementById('tab-register').style.background = isLogin ? 'transparent' : '#0ea5e9';
+  document.getElementById('tab-register').style.color      = isLogin ? '#64748b' : 'white';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+async function doRegister() {
+  const name  = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  const pass2 = document.getElementById('r-pass2').value;
+  const err   = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (!name)              { err.textContent = 'Escreve o teu nome.';            err.style.display='block'; return; }
+  if (!email)             { err.textContent = 'Escreve o teu email.';           err.style.display='block'; return; }
+  if (pass.length < 6)    { err.textContent = 'Password com mínimo 6 letras.';  err.style.display='block'; return; }
+  if (pass !== pass2)     { err.textContent = 'As passwords não coincidem.';    err.style.display='block'; return; }
+  const btn = document.getElementById('register-btn');
+  btn.textContent = 'A criar...'; btn.disabled = true;
+  const { error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { name } }
+  });
+  btn.textContent = 'Criar conta'; btn.disabled = false;
+  if (error) { err.textContent = error.message || 'Erro ao criar conta.'; err.style.display='block'; return; }
+  err.style.cssText = 'display:block;color:#10b981';
+  err.textContent = '✓ Conta criada! Podes entrar agora.';
+  switchTab('login');
+  document.getElementById('l-email').value = email;
+}
+
+function shareInvite() {
+  closeModal('user-menu');
+  const link = 'https://nossaagenda.ch';
+  if (navigator.share) {
+    navigator.share({ title: 'NossaAgenda', text: 'Entra na nossa agenda familiar!', url: link });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(link);
+    toast('Link copiado: nossaagenda.ch');
+  } else {
+    toast('nossaagenda.ch — partilha este link!');
+  }
 }
 
 async function doLogin() {
@@ -801,7 +892,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 8;
+const CURRENT_BUILD = 9;
 
 async function checkForUpdate() {
   try {
