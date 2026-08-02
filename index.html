@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 22</div>
+      <div class="h-build">v 23</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -450,6 +450,7 @@ async function boot() {
   showApp();
   await loadMembers();
   await loadEvents();
+  setupRealtime();
   renderCalendar();
   renderDayEvents(selectedDate);
 }
@@ -914,8 +915,19 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ========== REALTIME ==========
+function setupRealtime() {
+  sb.channel('events-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, async () => {
+      await loadEvents();
+      renderCalendar();
+      renderDayEvents(selectedDate);
+    })
+    .subscribe();
+}
+
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 22;
+const CURRENT_BUILD = 23;
 
 async function checkForUpdate() {
   try {
