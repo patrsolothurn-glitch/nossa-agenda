@@ -181,7 +181,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 1</div>
+      <div class="h-build">v 2</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -212,38 +212,49 @@
     <div class="handle"></div>
     <div class="sh-title" id="ev-modal-title">Novo Evento</div>
 
+    <!-- Icons -->
+    <div class="ff">
+      <label class="fl">Ícone</label>
+      <div id="icon-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:4px"></div>
+    </div>
+
     <div class="ff">
       <label class="fl">Título</label>
       <input type="text" class="fi" id="ev-title" placeholder="Nome do evento">
     </div>
-    <div class="ff">
-      <label class="fl">Descrição (opcional)</label>
-      <textarea class="fi" id="ev-desc" placeholder="Detalhes..."></textarea>
-    </div>
+
     <div class="ff">
       <label class="fl">Categoria</label>
       <div class="cat-grid" id="cat-grid"></div>
     </div>
+
     <div class="tog-row">
       <span class="tog-lbl">Dia inteiro</span>
       <div class="tog on" id="allday-tog" onclick="toggleAllDay()"><div class="tog-th"></div></div>
     </div>
+
     <div class="ff">
       <label class="fl">Data</label>
       <div class="row2">
         <input type="date" class="fi" id="ev-date-start">
-        <input type="date" class="fi" id="ev-date-end" placeholder="Fim (opcional)">
-      </div>
-    </div>
-    <div class="ff hidden" id="time-fields">
-      <label class="fl">Hora</label>
-      <div class="row2">
-        <input type="time" class="fi" id="ev-time-start">
-        <input type="time" class="fi" id="ev-time-end">
+        <input type="date" class="fi" id="ev-date-end">
       </div>
     </div>
 
-    <button class="btn-p" onclick="saveEvent()">Guardar</button>
+    <div class="ff hidden" id="time-fields">
+      <label class="fl">Hora</label>
+      <div class="row2">
+        <input type="time" class="fi" id="ev-time-start" placeholder="Início">
+        <input type="time" class="fi" id="ev-time-end" placeholder="Fim">
+      </div>
+    </div>
+
+    <div class="ff">
+      <label class="fl">Nota (opcional)</label>
+      <textarea class="fi" id="ev-desc" placeholder="Informação adicional..." style="min-height:60px"></textarea>
+    </div>
+
+    <button class="btn-p" onclick="saveEvent()">✓ Guardar</button>
     <button class="btn-d hidden" id="ev-del-btn" onclick="deleteEvent()">Eliminar evento</button>
     <button class="btn-ghost" onclick="closeModal('ev-modal')">Cancelar</button>
   </div>
@@ -314,7 +325,7 @@
 <!-- ===== TOAST ===== -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js"></script>
 <script>
 // ========== CONFIG ==========
 const SUPABASE_URL  = 'https://hfpvbemoxgvtmerdnufb.supabase.co';
@@ -333,6 +344,8 @@ const DAYS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 // ========== SUPABASE ==========
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const ICONS = ["📅","🏠","🏥","🦷","🎂","✈️","🎓","⚽","🎉","🛒","📚","💊","💼","🍽️","🎵","🏋️"];
+
 // ========== STATE ==========
 let user = null, profile = null;
 let viewDate = new Date();
@@ -340,7 +353,8 @@ let selectedDate = new Date();
 let events = [];
 let editId = null;
 let allDay = true;
-let selCat = 'familia';
+let selCat = "familia";
+let selIcon = "📅";
 let logoTaps = 0, logoTimer = null;
 
 // ========== INIT ==========
@@ -433,7 +447,7 @@ async function saveEvent() {
   const sd = document.getElementById('ev-date-start').value;
   if (!sd) { toast('Escolhe uma data'); return; }
   const payload = {
-    title,
+    title: selIcon + ' ' + title,
     description: document.getElementById('ev-desc').value.trim() || null,
     category: selCat,
     start_date: sd,
@@ -446,7 +460,7 @@ async function saveEvent() {
   const { error } = editId
     ? await sb.from('events').update(payload).eq('id', editId)
     : await sb.from('events').insert(payload);
-  if (error) { toast('Erro ao guardar'); return; }
+  if (error) { console.error('Save error:', JSON.stringify(error)); toast('Erro: ' + (error.message||error.code||'desconhecido')); return; }
 
   // Notificar todos quando evento novo é criado
   if (!editId) {
@@ -566,8 +580,21 @@ function openEventModal(ev = null) {
   document.getElementById('allday-tog').className = `tog ${allDay ? 'on' : ''}`;
   document.getElementById('time-fields').classList.toggle('hidden', allDay);
   document.getElementById('ev-del-btn').classList.toggle('hidden', !ev);
+  selIcon = ev?.icon || '📅';
+  renderIconGrid();
   renderCatGrid();
   openModal('ev-modal');
+}
+
+function renderIconGrid() {
+  const grid = document.getElementById('icon-grid'); if(!grid) return; grid.innerHTML = '';
+  ICONS.forEach(icon => {
+    const btn = document.createElement('div');
+    btn.style.cssText = 'width:100%;aspect-ratio:1;border-radius:12px;border:2px solid ' + (selIcon===icon?'#0ea5e9':'#e2e8f0') + ';background:' + (selIcon===icon?'#e0f2fe':'white') + ';display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all .15s';
+    btn.textContent = icon;
+    btn.onclick = () => { selIcon = icon; renderIconGrid(); };
+    grid.appendChild(btn);
+  });
 }
 
 function renderCatGrid() {
