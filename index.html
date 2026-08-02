@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 17</div>
+      <div class="h-build">v 18</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -606,8 +606,9 @@ async function saveEvent() {
 
   // Notificar todos quando evento novo é criado
   if (!editId) {
-    sb.functions.invoke('send-push', {
-      body: { title: '📅 NossaAgenda', message: (profile?.name || 'Alguém') + ' adicionou: ' + title }
+    sb.rpc('send_push_notification', {
+      p_title: '📅 NossaAgenda',
+      p_message: (profile?.name || 'Alguém') + ' adicionou: ' + title
     }).catch(() => {});
   }
 
@@ -886,12 +887,9 @@ async function sendPushToAll() {
   const msg   = document.getElementById('push-msg').value.trim();
   if (!msg) { toast('Escreve uma mensagem'); return; }
   try {
-    const { data, error } = await sb.functions.invoke('send-push', {
-      body: { title, message: msg }
-    });
+    const { error } = await sb.rpc('send_push_notification', { p_title: title, p_message: msg });
     closeModal('push-modal');
-    if (error) { toast('Erro: ' + error.message); return; }
-    toast(data?.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')' : 'Enviado (0 subscrições ativas)');
+    toast(error ? 'Erro: ' + error.message : '🔔 Notificação enviada!');
   } catch(e) { closeModal('push-modal'); toast('Erro: ' + e.message); }
 }
 
@@ -916,7 +914,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 17;
+const CURRENT_BUILD = 18;
 
 async function checkForUpdate() {
   try {
