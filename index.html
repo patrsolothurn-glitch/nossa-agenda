@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 21</div>
+      <div class="h-build">v 22</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -608,7 +608,7 @@ async function saveEvent() {
   // Notificar todos quando evento novo é criado
   if (!editId) {
     const _p = new URLSearchParams({ title: '📅 NossaAgenda', message: (profile?.name||'Alguém')+' adicionou: '+title, apikey: SUPABASE_KEY });
-    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push?' + _p).catch(() => {});
+    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + _p).catch(() => {});
   }
 
   closeModal('ev-modal');
@@ -887,7 +887,7 @@ async function sendPushToAll() {
   if (!msg) { toast('Escreve uma mensagem'); return; }
   try {
     const p = new URLSearchParams({ title, message: msg, apikey: SUPABASE_KEY });
-    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/send-push?' + p);
+    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p);
     const data = await res.json();
     closeModal('push-modal');
     toast(data.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')!' : 'Enviado: ' + JSON.stringify(data));
@@ -915,7 +915,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 21;
+const CURRENT_BUILD = 22;
 
 async function checkForUpdate() {
   try {
