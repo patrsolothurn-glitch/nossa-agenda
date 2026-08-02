@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 10</div>
+      <div class="h-build">v 11</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -298,6 +298,29 @@
     <button class="btn-p" onclick="saveEvent()">✓ Guardar</button>
     <button class="btn-d hidden" id="ev-del-btn" onclick="deleteEvent()">Eliminar evento</button>
     <button class="btn-ghost" onclick="closeModal('ev-modal')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ===== INVITE MODAL ===== -->
+<div class="overlay" id="invite-modal" onclick="if(event.target===this)closeModal('invite-modal')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="sh-title">👤 Convidar membro</div>
+    <div class="ff">
+      <label class="fl">Nome</label>
+      <input type="text" class="fi" id="inv-name" placeholder="Ex: Lidia">
+    </div>
+    <div class="ff">
+      <label class="fl">Email</label>
+      <input type="email" class="fi" id="inv-email" placeholder="email@exemplo.com">
+    </div>
+    <div class="ff">
+      <label class="fl">Password inicial</label>
+      <input type="text" class="fi" id="inv-pass" placeholder="Ex: Familia2026">
+      <div style="font-size:12px;color:#94a3b8;margin-top:4px">A pessoa pode mudar depois</div>
+    </div>
+    <button class="btn-p" onclick="sendWhatsAppInvite()">📲 Abrir WhatsApp</button>
+    <button class="btn-ghost" onclick="closeModal('invite-modal')">Cancelar</button>
   </div>
 </div>
 
@@ -489,13 +512,30 @@ async function doRegister() {
 
 function shareInvite() {
   closeModal('user-menu');
-  const nome = profile?.name?.split(' ')[0] || 'Eu';
+  document.getElementById('inv-name').value = '';
+  document.getElementById('inv-email').value = '';
+  document.getElementById('inv-pass').value = '';
+  openModal('invite-modal');
+}
+
+function sendWhatsAppInvite() {
+  const nome  = document.getElementById('inv-name').value.trim();
+  const email = document.getElementById('inv-email').value.trim();
+  const pass  = document.getElementById('inv-pass').value.trim();
+  if (!nome || !email || !pass) { toast('Preenche todos os campos'); return; }
+  const quem = profile?.name?.split(' ')[0] || 'A família';
   const msg = encodeURIComponent(
     '👨‍👩‍👧 *NossaAgenda* — a nossa agenda familiar!\n\n' +
-    nome + ' convidou-te para partilhar eventos, marcações e lembretes em família. 📅\n\n' +
-    '👉 Entra aqui: https://nossaagenda.ch\n\n' +
-    'Cria a tua conta com o teu email e já podes ver e criar eventos para toda a família!'
+    quem + ' convidou-te para a agenda da família! 📅\n\n' +
+    '👉 *Link:* https://nossaagenda.ch\n\n' +
+    '📧 *Email:* ' + email + '\n' +
+    '🔑 *Password:* ' + pass + '\n\n' +
+    '1️⃣ Abre o link\n' +
+    '2️⃣ Toca em *Criar conta*\n' +
+    '3️⃣ Usa o email e password acima\n\n' +
+    'Bem-vindo(a), ' + nome + '! 🎉'
   );
+  closeModal('invite-modal');
   window.open('https://wa.me/?text=' + msg, '_blank');
 }
 
@@ -891,7 +931,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 10;
+const CURRENT_BUILD = 11;
 
 async function checkForUpdate() {
   try {
