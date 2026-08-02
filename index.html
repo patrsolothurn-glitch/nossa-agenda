@@ -234,7 +234,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 30</div>
+      <div class="h-build">v 31</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -406,6 +406,12 @@
       <span>Sair</span>
     </div>
   </div>
+</div>
+
+<!-- ===== UPDATE BANNER ===== -->
+<div class="update-banner" id="update-banner">
+  🔄 Nova versão disponível
+  <button class="update-btn" onclick="applyUpdate()">Atualizar</button>
 </div>
 
 <!-- ===== TOAST ===== -->
@@ -1027,21 +1033,25 @@ function toast(msg) {
 
 // ========== REALTIME ==========
 let realtimeChannel = null;
+let realtimeConnected = false;
 
 function setupRealtime() {
   if (realtimeChannel) {
     try { sb.removeChannel(realtimeChannel); } catch {}
   }
+  realtimeConnected = false;
   realtimeChannel = sb.channel('events-realtime-' + Date.now())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, async () => {
       await loadEvents();
       renderCalendar();
       renderDayEvents(selectedDate);
     })
-    .subscribe((status, err) => {
+    .subscribe((status) => {
+      realtimeConnected = (status === 'SUBSCRIBED');
       if (status === 'SUBSCRIBED') {
         console.log('[Realtime] Ligado ✓');
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        realtimeConnected = false;
         console.warn('[Realtime] Desligado (' + status + '), a reconectar em 5s...');
         setTimeout(setupRealtime, 5000);
       }
@@ -1049,29 +1059,43 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 30;
+const CURRENT_BUILD = 31;
+let updatePending = false;
 
 async function checkForUpdate() {
   try {
     const res = await fetch('/version.json?t=' + Date.now());
     const { build } = await res.json();
-    if (build > CURRENT_BUILD) {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.unregister()));
+    if (build > CURRENT_BUILD && !updatePending) {
+      updatePending = true;
+      if (document.hidden || !user) {
+        // App em background ou sem sessão: atualiza logo
+        await applyUpdate();
+      } else {
+        // App em uso: mostra banner não-intrusivo
+        document.getElementById('update-banner').style.display = 'flex';
       }
-      const caches_keys = await caches.keys();
-      await Promise.all(caches_keys.map(k => caches.delete(k)));
-      window.location.reload(true);
     }
   } catch {}
+}
+
+async function applyUpdate() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  } catch {}
+  window.location.reload(true);
 }
 
 // Verifica ao abrir o ecrã
 document.addEventListener('visibilitychange', async () => {
   if (!document.hidden) {
     checkForUpdate();
-    // Atualiza o calendário quando o utilizador volta ao ecrã (ex: Pedro abre app via notificação)
+    // Atualiza calendário ao voltar ao ecrã (fallback para quando Realtime cai no mobile)
     if (user) {
       await loadEvents();
       renderCalendar();
@@ -1080,8 +1104,17 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-// Verifica a cada 5 minutos
-setInterval(checkForUpdate, 5 * 60 * 1000);
+// Verifica versão a cada 3 minutos
+setInterval(checkForUpdate, 3 * 60 * 1000);
+
+// Fallback: se Realtime não estiver ligado, atualiza calendário a cada 60s
+setInterval(async () => {
+  if (user && !document.hidden && !realtimeConnected) {
+    await loadEvents();
+    renderCalendar();
+    renderDayEvents(selectedDate);
+  }
+}, 60 * 1000);
 
 // ========== UTILS ==========
 function toDateStr(d) { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
