@@ -236,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 37</div>
+      <div class="h-build">v 38</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -825,7 +825,7 @@ function renderMemberFilter() {
     label.textContent = m.name?.split(' ')[0] || m.email?.split('@')[0] || '?';
     btn.appendChild(circle);
     btn.appendChild(label);
-    btn.onclick = () => { filterMember = m.id; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
+    btn.onclick = () => { filterMember = (filterMember === m.id) ? null : m.id; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
     bar.appendChild(btn);
   });
 }
@@ -1307,7 +1307,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 37;
+const CURRENT_BUILD = 38;
 let updatePending = false;
 
 async function checkForUpdate() {
