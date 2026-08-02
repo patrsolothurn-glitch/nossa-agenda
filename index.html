@@ -234,7 +234,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 31</div>
+      <div class="h-build">v 32</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -804,6 +804,14 @@ function selectDay(date) {
   renderDayEvents(date);
 }
 
+function creatorInfo(ev) {
+  const MCOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
+  const name = ev.profiles?.name || members.find(m => m.id === ev.created_by)?.name || null;
+  const idx = members.findIndex(m => m.id === ev.created_by);
+  const color = idx >= 0 ? MCOLORS[idx % MCOLORS.length] : '#94a3b8';
+  return { name, color };
+}
+
 function renderDayEvents(date) {
   const evs = eventsForDay(date);
   const label = isToday(date) ? 'Hoje' : `${date.getDate()} de ${MONTHS[date.getMonth()]}`;
@@ -813,12 +821,20 @@ function renderDayEvents(date) {
   if (!evs.length) { list.innerHTML = '<div class="no-ev">📅 Sem eventos neste dia</div>'; return; }
   evs.forEach(ev => {
     const cat = CATS.find(c => c.id === ev.category) || CATS[0];
+    const { name: cName, color: cColor } = creatorInfo(ev);
+    const timeStr = ev.all_day ? 'Dia inteiro' : ((ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time||'').slice(0,5) : ''));
+    const creatorHtml = cName
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px">
+           <span style="width:15px;height:15px;border-radius:50%;background:${cColor};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;flex-shrink:0">${cName[0].toUpperCase()}</span>
+           <span>${cName.split(' ')[0]}</span>
+         </span>`
+      : '';
     const card = document.createElement('div'); card.className = 'ev-card';
     card.innerHTML = `
       <div class="ev-dot" style="background:${cat.color}"></div>
       <div class="ev-info">
         <div class="ev-title">${ev.title}</div>
-        <div class="ev-meta">${ev.all_day ? 'Dia inteiro' : (ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time).slice(0,5) : '')}${(ev.profiles?.name && !ev.profiles?.is_admin) ? ' · ' + ev.profiles.name : ''}</div>
+        <div class="ev-meta">${timeStr}${creatorHtml}</div>
       </div>
       <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
     card.addEventListener('click', () => openEventModal(ev));
@@ -1059,7 +1075,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 31;
+const CURRENT_BUILD = 32;
 let updatePending = false;
 
 async function checkForUpdate() {
