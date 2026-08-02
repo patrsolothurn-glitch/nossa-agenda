@@ -137,6 +137,8 @@
     .pass-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#94a3b8;padding:4px;line-height:1}
     .reset-link{text-align:center;margin-top:10px}
     .reset-link a{font-size:13px;color:#0ea5e9;cursor:pointer;text-decoration:none;font-weight:500}
+    .av-photo{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+    .av-cam-btn{position:absolute;bottom:-2px;right:-2px;width:22px;height:22px;background:#0ea5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid white;font-size:10px;z-index:1}
   </style>
 </head>
 <body>
@@ -234,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 32</div>
+      <div class="h-build">v 33</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -383,7 +385,10 @@
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="handle"></div>
     <div class="user-info-row">
-      <div class="big-av" id="big-av">?</div>
+      <div style="position:relative;flex-shrink:0">
+        <div class="big-av" id="big-av" onclick="openAvatarPicker()" style="cursor:pointer;overflow:hidden">?</div>
+        <div class="av-cam-btn" onclick="openAvatarPicker()">📷</div>
+      </div>
       <div>
         <div style="font-size:17px;font-weight:700" id="um-name">-</div>
         <div style="font-size:13px;color:#94a3b8" id="um-email">-</div>
@@ -486,15 +491,32 @@ function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('app-screen').classList.add('visible');
-  const init = (profile?.name || user?.email || '?')[0].toUpperCase();
-  document.getElementById('h-avatar').textContent = init;
-  document.getElementById('big-av').textContent = init;
   const displayName = (profile?.name && profile.name !== 'Utilizador') ? profile.name : (user?.email?.split('@')[0] || 'Utilizador');
   document.getElementById('um-name').textContent = displayName;
-  document.getElementById('h-avatar').textContent = displayName[0].toUpperCase();
-  document.getElementById('big-av').textContent = displayName[0].toUpperCase();
   document.getElementById('um-email').textContent = user?.email || '';
   updatePushStatus();
+  updateAvatarDisplay();
+}
+
+function updateAvatarDisplay() {
+  const name = (profile?.name && profile.name !== 'Utilizador') ? profile.name : (user?.email?.split('@')[0] || '?');
+  const av = profile?.avatar_url;
+  const hav = document.getElementById('h-avatar');
+  const bav = document.getElementById('big-av');
+  if (hav) {
+    hav.innerHTML = av
+      ? `<img class="av-photo" src="${av}" style="width:36px;height:36px">`
+      : name[0].toUpperCase();
+    hav.style.padding = av ? '0' : '';
+    hav.style.overflow = 'hidden';
+  }
+  if (bav) {
+    bav.innerHTML = av
+      ? `<img class="av-photo" src="${av}" style="width:56px;height:56px">`
+      : name[0].toUpperCase();
+    bav.style.padding = av ? '0' : '';
+    bav.style.overflow = 'hidden';
+  }
 }
 
 function switchTab(tab) {
@@ -627,14 +649,14 @@ async function loadEvents() {
   const start = new Date(y, m, 1).toISOString().split('T')[0];
   const end   = new Date(y, m + 1, 0).toISOString().split('T')[0];
   const { data, error } = await sb.from('events')
-    .select('*, profiles(name,is_admin)')
+    .select('*, profiles(name,is_admin,avatar_url)')
     .gte('start_date', start)
     .lte('start_date', end)
     .order('start_date');
   if (error) {
     console.warn('loadEvents join error, a tentar sem profiles:', error.message);
     const { data: data2 } = await sb.from('events')
-      .select('*')
+      .select('*, profiles(name,is_admin,avatar_url)')
       .gte('start_date', start)
       .lte('start_date', end)
       .order('start_date');
@@ -712,7 +734,7 @@ let members = [];
 let filterMember = null;
 
 async function loadMembers() {
-  const { data } = await sb.from('profiles').select('id,name,email,is_admin').order('name');
+  const { data } = await sb.from('profiles').select('id,name,email,is_admin,avatar_url').order('name');
   members = (data || []).filter(m => !m.is_admin);
   renderMemberFilter();
 }
@@ -743,8 +765,14 @@ function renderMemberFilter() {
     btn.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';
     const circle = document.createElement('div');
     const isSelected = filterMember === m.id;
-    circle.style.cssText = 'width:52px;height:52px;border-radius:50%;background:' + colors[i%colors.length] + ';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:white;border:3px solid ' + (isSelected?'white':'transparent');
-    circle.textContent = (m.name||'?')[0].toUpperCase();
+    circle.style.cssText = 'width:52px;height:52px;border-radius:50%;background:' + colors[i%colors.length] + ';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:white;border:3px solid ' + (isSelected?'white':'transparent') + ';overflow:hidden;flex-shrink:0';
+    if (m.avatar_url) {
+      const img = document.createElement('img');
+      img.src = m.avatar_url; img.style.cssText = 'width:52px;height:52px;border-radius:50%;object-fit:cover';
+      circle.appendChild(img);
+    } else {
+      circle.textContent = (m.name||'?')[0].toUpperCase();
+    }
     const label = document.createElement('div');
     label.style.cssText = 'font-size:11px;font-weight:600;color:white;white-space:nowrap;max-width:56px;overflow:hidden;text-overflow:ellipsis;text-align:center';
     label.textContent = m.name?.split(' ')[0] || m.email?.split('@')[0] || '?';
@@ -806,10 +834,12 @@ function selectDay(date) {
 
 function creatorInfo(ev) {
   const MCOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-  const name = ev.profiles?.name || members.find(m => m.id === ev.created_by)?.name || null;
+  const member = members.find(m => m.id === ev.created_by);
+  const name = ev.profiles?.name || member?.name || null;
+  const avatarUrl = ev.profiles?.avatar_url || member?.avatar_url || null;
   const idx = members.findIndex(m => m.id === ev.created_by);
   const color = idx >= 0 ? MCOLORS[idx % MCOLORS.length] : '#94a3b8';
-  return { name, color };
+  return { name, color, avatarUrl };
 }
 
 function renderDayEvents(date) {
@@ -821,13 +851,13 @@ function renderDayEvents(date) {
   if (!evs.length) { list.innerHTML = '<div class="no-ev">📅 Sem eventos neste dia</div>'; return; }
   evs.forEach(ev => {
     const cat = CATS.find(c => c.id === ev.category) || CATS[0];
-    const { name: cName, color: cColor } = creatorInfo(ev);
+    const { name: cName, color: cColor, avatarUrl: cAv } = creatorInfo(ev);
     const timeStr = ev.all_day ? 'Dia inteiro' : ((ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time||'').slice(0,5) : ''));
+    const avEl = cAv
+      ? `<img src="${cAv}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;flex-shrink:0;vertical-align:middle">`
+      : `<span style="width:15px;height:15px;border-radius:50%;background:${cColor};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;flex-shrink:0">${cName?.[0]?.toUpperCase()||'?'}</span>`;
     const creatorHtml = cName
-      ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px">
-           <span style="width:15px;height:15px;border-radius:50%;background:${cColor};display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:white;flex-shrink:0">${cName[0].toUpperCase()}</span>
-           <span>${cName.split(' ')[0]}</span>
-         </span>`
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px">${avEl}<span>${cName.split(' ')[0]}</span></span>`
       : '';
     const card = document.createElement('div'); card.className = 'ev-card';
     card.innerHTML = `
@@ -948,8 +978,11 @@ async function loadAdminData() {
   const mel = document.getElementById('admin-members'); mel.innerHTML = '';
   (members || []).forEach(m => {
     const row = document.createElement('div'); row.className = 'mb-row';
+    const avHtml = m.avatar_url
+      ? `<img src="${m.avatar_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+      : `<div class="mb-av">${(m.name||'?')[0].toUpperCase()}</div>`;
     row.innerHTML = `
-      <div class="mb-av">${(m.name||'?')[0].toUpperCase()}</div>
+      ${avHtml}
       <div style="flex:1"><div class="mb-name">${m.name}</div><div class="mb-email">${m.email||'-'}</div></div>
       ${m.is_admin ? '<span style="font-size:11px;color:#0ea5e9;font-weight:700">ADMIN</span>' : ''}`;
     mel.appendChild(row);
@@ -957,7 +990,7 @@ async function loadAdminData() {
 
   // Events
   const { data: evs } = await sb.from('events')
-    .select('*, profiles(name,is_admin)').order('start_date', { ascending: false }).limit(15);
+    .select('*, profiles(name,is_admin,avatar_url)').order('start_date', { ascending: false }).limit(15);
   const eel = document.getElementById('admin-events'); eel.innerHTML = '';
   (evs || []).forEach(ev => {
     const cat = CATS.find(c => c.id === ev.category) || CATS[0];
@@ -1023,6 +1056,49 @@ function b64ToUint8(b64) {
   return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
 }
 
+// ========== AVATAR PICKER ==========
+function openAvatarPicker() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    toast('A processar imagem...');
+    try {
+      const base64 = await resizeImage(file, 256);
+      const { error } = await sb.from('profiles').update({ avatar_url: base64 }).eq('id', user.id);
+      if (error) { toast('Erro ao guardar foto'); return; }
+      if (!profile) profile = {};
+      profile.avatar_url = base64;
+      // Atualizar também na lista de membros
+      const m = members.find(m => m.id === user.id);
+      if (m) m.avatar_url = base64;
+      updateAvatarDisplay();
+      renderMemberFilter();
+      toast('Foto atualizada ✓');
+    } catch(e) { toast('Erro: ' + e.message); }
+  };
+  input.click();
+}
+
+function resizeImage(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 // ========== USER MENU ==========
 async function updatePushStatus() {
   try {
@@ -1075,7 +1151,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 32;
+const CURRENT_BUILD = 33;
 let updatePending = false;
 
 async function checkForUpdate() {
