@@ -236,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 38</div>
+      <div class="h-build">v 39</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -504,6 +504,7 @@ async function boot() {
   showApp();
   await loadMembers();
   await loadVirtualMembers();
+  renderMemberFilter(); // garante que membros virtuais aparecem no filtro
   await loadEvents();
   setupRealtime();
   renderCalendar();
@@ -1307,7 +1308,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 38;
+const CURRENT_BUILD = 39;
 let updatePending = false;
 
 async function checkForUpdate() {
