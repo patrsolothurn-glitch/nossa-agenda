@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 28</div>
+      <div class="h-build">v 29</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -637,7 +637,7 @@ async function saveEvent() {
 
   closeModal('ev-modal');
   // Navega para a data do evento e reset do filtro para mostrar tudo
-  const eventDate = new Date(sd + 'T00:00:00');
+  const [ey,em,ed] = sd.split('-').map(Number); const eventDate = new Date(ey, em-1, ed);
   if (viewDate.getFullYear() !== eventDate.getFullYear() || viewDate.getMonth() !== eventDate.getMonth()) {
     viewDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
   }
@@ -1008,7 +1008,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 28;
+const CURRENT_BUILD = 29;
 
 async function checkForUpdate() {
   try {
@@ -1027,15 +1027,23 @@ async function checkForUpdate() {
 }
 
 // Verifica ao abrir o ecrã
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) checkForUpdate();
+document.addEventListener('visibilitychange', async () => {
+  if (!document.hidden) {
+    checkForUpdate();
+    // Atualiza o calendário quando o utilizador volta ao ecrã (ex: Pedro abre app via notificação)
+    if (user) {
+      await loadEvents();
+      renderCalendar();
+      renderDayEvents(selectedDate);
+    }
+  }
 });
 
 // Verifica a cada 5 minutos
 setInterval(checkForUpdate, 5 * 60 * 1000);
 
 // ========== UTILS ==========
-function toDateStr(d) { return d.toISOString().split('T')[0]; }
+function toDateStr(d) { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
 function isToday(d) { const t = new Date(); return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear(); }
 function isSameDay(a, b) { return a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear(); }
 </script>
