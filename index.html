@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 41</div>
+      <div class="h-build">v 42</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -844,7 +844,22 @@ function renderMemberFilter() {
     label.textContent = m.name?.split(' ')[0] || m.email?.split('@')[0] || '?';
     btn.appendChild(circle);
     btn.appendChild(label);
-    btn.onclick = () => { filterMember = (filterMember === m.id) ? null : m.id; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
+    btn.onclick = () => { filterMember = (filterMember === m.id) ? null : m.id; renderMemberFilter(); if(viewMode==='week') renderWeekView(); else {renderCalendar(); renderDayEvents(selectedDate);} };
+
+    // Membros virtuais: 📷 badge para qualquer utilizador mudar a foto
+    if (m.is_virtual) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;width:52px;height:52px;flex-shrink:0';
+      wrap.appendChild(circle);
+      const cam = document.createElement('div');
+      cam.textContent = '📷';
+      cam.style.cssText = 'position:absolute;bottom:-1px;right:-1px;width:19px;height:19px;background:#0ea5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;border:2px solid white;z-index:2;line-height:1';
+      cam.onclick = (e) => { e.stopPropagation(); pickVmPhotoById(m.id, m.name); };
+      wrap.appendChild(cam);
+      btn.insertBefore(wrap, btn.firstChild);
+    } else {
+      btn.insertBefore(circle, btn.firstChild);
+    }
     bar.appendChild(btn);
   });
 }
@@ -1291,6 +1306,24 @@ function openAddVirtualMember() {
   setTimeout(() => openModal('vm-modal'), 200);
 }
 
+async function pickVmPhotoById(vmId, vmName) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    toast('A processar...');
+    try {
+      const base64 = await resizeImage(file, 256);
+      const { error } = await sb.from('virtual_members').update({ avatar_url: base64 }).eq('id', vmId);
+      if (error) { toast('Erro: ' + error.message); return; }
+      await loadVirtualMembers();
+      renderMemberFilter();
+      toast((vmName||'Membro') + ' — foto atualizada ✓');
+    } catch(e) { toast('Erro: ' + (e.message||'')); }
+  };
+  input.click();
+}
+
 function pickVmPhoto() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
@@ -1432,7 +1465,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 41;
+const CURRENT_BUILD = 42;
 let updatePending = false;
 
 async function checkForUpdate() {
