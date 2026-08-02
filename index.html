@@ -236,7 +236,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 34</div>
+      <div class="h-build">v 35</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1158,7 +1158,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 34;
+const CURRENT_BUILD = 35;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1224,7 +1224,7 @@ setInterval(async () => {
     renderCalendar();
     renderDayEvents(selectedDate);
   }
-}, 60 * 1000);
+}, 10 * 1000);
 
 // ========== UTILS ==========
 function toDateStr(d) { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
