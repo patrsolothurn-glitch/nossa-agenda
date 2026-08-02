@@ -219,7 +219,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 12</div>
+      <div class="h-build">v 13</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -567,7 +567,7 @@ async function loadEvents() {
   const start = new Date(y, m, 1).toISOString().split('T')[0];
   const end   = new Date(y, m + 1, 0).toISOString().split('T')[0];
   const { data } = await sb.from('events')
-    .select('*, profiles(name)')
+    .select('*, profiles(name,is_admin)')
     .gte('start_date', start)
     .lte('start_date', end)
     .order('start_date');
@@ -636,8 +636,8 @@ let members = [];
 let filterMember = null;
 
 async function loadMembers() {
-  const { data } = await sb.from('profiles').select('id,name,email').order('name');
-  members = data || [];
+  const { data } = await sb.from('profiles').select('id,name,email,is_admin').order('name');
+  members = (data || []).filter(m => !m.is_admin);
   renderMemberFilter();
 }
 
@@ -743,7 +743,7 @@ function renderDayEvents(date) {
       <div class="ev-dot" style="background:${cat.color}"></div>
       <div class="ev-info">
         <div class="ev-title">${ev.title}</div>
-        <div class="ev-meta">${ev.all_day ? 'Dia inteiro' : (ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time).slice(0,5) : '')}${ev.profiles?.name ? ' · ' + ev.profiles.name : ''}</div>
+        <div class="ev-meta">${ev.all_day ? 'Dia inteiro' : (ev.start_time||'').slice(0,5) + (ev.end_time ? '–'+(ev.end_time).slice(0,5) : '')}${(ev.profiles?.name && !ev.profiles?.is_admin) ? ' · ' + ev.profiles.name : ''}</div>
       </div>
       <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
     card.addEventListener('click', () => openEventModal(ev));
@@ -838,7 +838,7 @@ async function loadAdminData() {
 
   // Events
   const { data: evs } = await sb.from('events')
-    .select('*, profiles(name)').order('start_date', { ascending: false }).limit(15);
+    .select('*, profiles(name,is_admin)').order('start_date', { ascending: false }).limit(15);
   const eel = document.getElementById('admin-events'); eel.innerHTML = '';
   (evs || []).forEach(ev => {
     const cat = CATS.find(c => c.id === ev.category) || CATS[0];
@@ -914,7 +914,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 12;
+const CURRENT_BUILD = 13;
 
 async function checkForUpdate() {
   try {
