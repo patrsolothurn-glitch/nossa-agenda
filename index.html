@@ -181,7 +181,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 2</div>
+      <div class="h-build">v 3</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -719,6 +719,33 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+// ========== AUTO UPDATE ==========
+const CURRENT_BUILD = 3;
+
+async function checkForUpdate() {
+  try {
+    const res = await fetch('/version.json?t=' + Date.now());
+    const { build } = await res.json();
+    if (build > CURRENT_BUILD) {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      const caches_keys = await caches.keys();
+      await Promise.all(caches_keys.map(k => caches.delete(k)));
+      window.location.reload(true);
+    }
+  } catch {}
+}
+
+// Verifica ao abrir o ecrã
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) checkForUpdate();
+});
+
+// Verifica a cada 5 minutos
+setInterval(checkForUpdate, 5 * 60 * 1000);
 
 // ========== UTILS ==========
 function toDateStr(d) { return d.toISOString().split('T')[0]; }
