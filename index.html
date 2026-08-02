@@ -181,7 +181,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 4</div>
+      <div class="h-build">v 5</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -352,7 +352,7 @@ let viewDate = new Date();
 let selectedDate = new Date();
 let events = [];
 let editId = null;
-let allDay = true;
+let allDay = false;
 let selCat = "familia";
 let selIcon = "📅";
 let logoTaps = 0, logoTimer = null;
@@ -572,7 +572,7 @@ async function changeMonth(dir) {
 // ========== EVENT MODAL ==========
 function openEventModal(ev = null) {
   editId = ev?.id || null;
-  allDay = ev?.all_day !== false;
+  allDay = ev ? (ev.all_day === true) : false;
   selCat = ev?.category || 'familia';
   document.getElementById('ev-modal-title').textContent = ev ? 'Editar Evento' : 'Novo Evento';
   document.getElementById('ev-title').value = ev?.title || '';
@@ -581,8 +581,8 @@ function openEventModal(ev = null) {
   document.getElementById('ev-date-end').value   = ev?.end_date || '';
   document.getElementById('ev-time-start').value = ev?.start_time || '';
   document.getElementById('ev-time-end').value   = ev?.end_time || '';
-  document.getElementById('allday-tog').className = `tog ${allDay ? 'on' : ''}`;
-  document.getElementById('time-fields').classList.toggle('hidden', allDay);
+  document.getElementById('allday-tog').className = 'tog ' + (allDay ? 'on' : '');
+document.getElementById('time-fields').classList.toggle('hidden', allDay);
   document.getElementById('ev-del-btn').classList.toggle('hidden', !ev);
   selIcon = ev?.icon || '📅';
   renderIconGrid();
@@ -616,8 +616,8 @@ function renderCatGrid() {
 
 function toggleAllDay() {
   allDay = !allDay;
-  document.getElementById('allday-tog').className = `tog ${allDay ? 'on' : ''}`;
-  document.getElementById('time-fields').classList.toggle('hidden', allDay);
+  document.getElementById('allday-tog').className = 'tog ' + (allDay ? 'on' : '');
+document.getElementById('time-fields').classList.toggle('hidden', allDay);
 }
 
 // ========== ADMIN ==========
@@ -725,7 +725,7 @@ function toast(msg) {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 4;
+const CURRENT_BUILD = 5;
 
 async function checkForUpdate() {
   try {
