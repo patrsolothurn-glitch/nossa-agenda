@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 46</div>
+      <div class="h-build">v 47</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1304,17 +1304,20 @@ async function sendPushToAll() {
 async function editVirtualMemberPhoto(id) {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
   input.onchange = async (e) => {
+    document.body.removeChild(input);
     const file = e.target.files[0]; if (!file) return;
     toast('A processar...');
     try {
       const base64 = await resizeImage(file, 256);
       const { error } = await sb.from('virtual_members').update({ avatar_url: base64 }).eq('id', id);
-      if (error) { toast('Erro: ' + error.message); return; }
+      if (error) { toast('Erro BD: ' + error.message); return; }
       await loadVirtualMembers();
       renderMemberFilter();
       toast('Foto atualizada ✓');
-    } catch(e) { toast('Erro: ' + e.message); }
+    } catch(e) { toast('Erro: ' + (e.message||'desconhecido')); }
   };
   input.click();
 }
@@ -1349,7 +1352,10 @@ async function pickVmPhotoById(vmId, vmName) {
 function pickVmPhoto() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
   input.onchange = async (e) => {
+    document.body.removeChild(input);
     const file = e.target.files[0]; if (!file) return;
     vmPhotoData = await resizeImage(file, 256);
     const prev = document.getElementById('vm-av-preview');
@@ -1397,23 +1403,25 @@ function b64ToUint8(b64) {
 function openAvatarPicker() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
   input.onchange = async (e) => {
+    document.body.removeChild(input);
     const file = e.target.files[0];
     if (!file) return;
     toast('A processar imagem...');
     try {
       const base64 = await resizeImage(file, 256);
       const { error } = await sb.from('profiles').update({ avatar_url: base64 }).eq('id', user.id);
-      if (error) { toast('Erro ao guardar foto'); return; }
+      if (error) { toast('Erro: ' + error.message); return; }
       if (!profile) profile = {};
       profile.avatar_url = base64;
-      // Atualizar também na lista de membros
       const m = members.find(m => m.id === user.id);
       if (m) m.avatar_url = base64;
       updateAvatarDisplay();
       renderMemberFilter();
       toast('Foto atualizada ✓');
-    } catch(e) { toast('Erro: ' + e.message); }
+    } catch(e) { toast('Erro: ' + (e.message||'desconhecido')); }
   };
   input.click();
 }
@@ -1507,7 +1515,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 46;
+const CURRENT_BUILD = 47;
 let updatePending = false;
 
 async function checkForUpdate() {
