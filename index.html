@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 47</div>
+      <div class="h-build">v 48</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -695,8 +695,8 @@ async function loadProfile() {
 // ========== EVENTS ==========
 async function loadEvents() {
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
-  const start = new Date(y, m, 1).toISOString().split('T')[0];
-  const end   = new Date(y, m + 1, 0).toISOString().split('T')[0];
+  const start = toDateStr(new Date(y, m, 1));       // hora local, não UTC
+  const end   = toDateStr(new Date(y, m + 1, 0));   // garante dia 31 em UTC+1/+2
   const { data, error } = await sb.from('events')
     .select('*, profiles(name,is_admin,avatar_url)')
     .gte('start_date', start)
@@ -1515,7 +1515,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 47;
+const CURRENT_BUILD = 48;
 let updatePending = false;
 
 async function checkForUpdate() {
