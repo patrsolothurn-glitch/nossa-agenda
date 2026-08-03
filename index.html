@@ -1297,6 +1297,24 @@ async function sendPushToAll() {
 }
 
 // ========== MEMBROS VIRTUAIS ==========
+async function editVirtualMemberPhoto(id) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    toast('A processar...');
+    try {
+      const base64 = await resizeImage(file, 256);
+      const { error } = await sb.from('virtual_members').update({ avatar_url: base64 }).eq('id', id);
+      if (error) { toast('Erro: ' + error.message); return; }
+      await loadVirtualMembers();
+      renderMemberFilter();
+      toast('Foto atualizada ✓');
+    } catch(e) { toast('Erro: ' + e.message); }
+  };
+  input.click();
+}
+
 function openAddVirtualMember() {
   vmPhotoData = null;
   document.getElementById('vm-name').value = '';
