@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 43</div>
+      <div class="h-build">v 44</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1378,6 +1378,7 @@ async function deleteVirtualMember(id) {
 }
 
 function sendPushSilent(message) {
+  broadcastChange(); // broadcast instantâneo para quem está online
   const p = new URLSearchParams({ title: '📅 NossaAgenda', message, apikey: SUPABASE_KEY });
   fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p).catch(() => {});
 }
@@ -1455,35 +1456,50 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ========== REALTIME ==========
+// ========== REALTIME (broadcast + postgres_changes) ==========
 let realtimeChannel = null;
+let broadcastChannel = null;
 let realtimeConnected = false;
+let refreshTimer = null;
+
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    await loadEvents();
+    renderCalendar();
+    renderDayEvents(selectedDate);
+  }, 200);
+}
 
 function setupRealtime() {
-  if (realtimeChannel) {
-    try { sb.removeChannel(realtimeChannel); } catch {}
-  }
-  realtimeConnected = false;
-  realtimeChannel = sb.channel('events-realtime-' + Date.now())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, async () => {
-      await loadEvents();
-      renderCalendar();
-      renderDayEvents(selectedDate);
-    })
+  // Canal broadcast: instantâneo quando todos estão online
+  if (broadcastChannel) try { sb.removeChannel(broadcastChannel); } catch {}
+  broadcastChannel = sb.channel('nossa-agenda-live')
+    .on('broadcast', { event: 'events_changed' }, () => scheduleRefresh())
     .subscribe((status) => {
       realtimeConnected = (status === 'SUBSCRIBED');
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Ligado ✓');
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      if (status === 'SUBSCRIBED') console.log('[Broadcast] Ligado ✓');
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         realtimeConnected = false;
-        console.warn('[Realtime] Desligado (' + status + '), a reconectar em 5s...');
-        setTimeout(setupRealtime, 5000);
+        setTimeout(setupRealtime, 3000);
       }
     });
+
+  // Canal postgres_changes como backup
+  if (realtimeChannel) try { sb.removeChannel(realtimeChannel); } catch {}
+  realtimeChannel = sb.channel('nossa-agenda-db')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => scheduleRefresh())
+    .subscribe();
+}
+
+function broadcastChange() {
+  try {
+    broadcastChannel?.send({ type: 'broadcast', event: 'events_changed', payload: {} });
+  } catch {}
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 43;
+const CURRENT_BUILD = 44;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1549,7 +1565,7 @@ setInterval(async () => {
     renderCalendar();
     renderDayEvents(selectedDate);
   }
-}, 10 * 1000);
+}, 5 * 1000);
 
 // ========== UTILS ==========
 function toDateStr(d) { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
