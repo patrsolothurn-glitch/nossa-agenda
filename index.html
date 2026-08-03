@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 45</div>
+      <div class="h-build">v 46</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -724,6 +724,12 @@ function eventsForDay(date, all = false) {
       try { return JSON.parse(e.assigned_to||'[]').includes(filterMember); } catch { return false; }
     });
   }
+  // Ordenar por hora crescente (dia inteiro primeiro, depois por hora)
+  evs.sort((a, b) => {
+    if (a.all_day && !b.all_day) return -1;
+    if (!a.all_day && b.all_day) return 1;
+    return (a.start_time||'').localeCompare(b.start_time||'');
+  });
   return evs;
 }
 
@@ -1501,7 +1507,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 45;
+const CURRENT_BUILD = 46;
 let updatePending = false;
 
 async function checkForUpdate() {
