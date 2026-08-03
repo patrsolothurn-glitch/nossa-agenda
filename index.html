@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 48</div>
+      <div class="h-build">v 49</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -782,7 +782,8 @@ async function saveEvent() {
 async function deleteEvent() {
   if (!editId || !confirm('Eliminar este evento?')) return;
   const delTitle = document.getElementById('ev-title').value.trim();
-  await sb.from('events').delete().eq('id', editId);
+  const { error: delErr } = await sb.from('events').delete().eq('id', editId);
+  if (delErr) { toast('Erro ao eliminar: ' + (delErr.message||'')); return; }
   sendPushSilent((profile?.name||'Alguém') + ' removeu: ' + delTitle);
   closeModal('ev-modal');
   await loadEvents();
@@ -825,7 +826,7 @@ function renderMemberFilter() {
   allLabel.textContent = 'Todos';
   allBtn.appendChild(allCircle);
   allBtn.appendChild(allLabel);
-  allBtn.onclick = () => { filterMember = null; renderMemberFilter(); renderCalendar(); renderDayEvents(selectedDate); };
+  allBtn.onclick = () => { filterMember = null; renderMemberFilter(); refreshView(); };
   bar.appendChild(allBtn);
 
   // Member buttons (reais + virtuais)
@@ -1334,7 +1335,10 @@ function openAddVirtualMember() {
 async function pickVmPhotoById(vmId, vmName) {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
   input.onchange = async (e) => {
+    document.body.removeChild(input);
     const file = e.target.files[0]; if (!file) return;
     toast('A processar...');
     try {
@@ -1515,7 +1519,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 48;
+const CURRENT_BUILD = 49;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1576,8 +1580,7 @@ setInterval(checkForUpdate, 3 * 60 * 1000);
 setInterval(async () => {
   if (user && !document.hidden && !realtimeConnected) {
     await loadEvents();
-    renderCalendar();
-    renderDayEvents(selectedDate);
+    refreshView();
   }
 }, 5 * 1000);
 
