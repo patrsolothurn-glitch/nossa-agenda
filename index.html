@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 42</div>
+      <div class="h-build">v 43</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -258,8 +258,8 @@
   <!-- Calendar -->
   <div class="cal-section">
     <div class="view-toggle">
-      <button class="vt-btn active" id="btn-month" onclick="setViewMode('month')">Mês</button>
-      <button class="vt-btn" id="btn-week" onclick="setViewMode('week')">Semana</button>
+      <button class="vt-btn active" id="btn-week" onclick="setViewMode('week')">Semana</button>
+      <button class="vt-btn" id="btn-month" onclick="setViewMode('month')">Mês</button>
     </div>
     <div class="cal-nav">
       <button onclick="navigatePrev()">‹</button>
@@ -1483,7 +1483,7 @@ function setupRealtime() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 42;
+const CURRENT_BUILD = 43;
 let updatePending = false;
 
 async function checkForUpdate() {
