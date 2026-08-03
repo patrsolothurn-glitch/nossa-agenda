@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 44</div>
+      <div class="h-build">v 45</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -769,8 +769,7 @@ async function saveEvent() {
   filterMember = null;
   await loadEvents();
   renderMemberFilter();
-  renderCalendar();
-  renderDayEvents(selectedDate);
+  refreshView(); // respeita o modo Semana ou Mês
   toast(editId ? 'Evento atualizado ✓' : 'Evento criado ✓');
 }
 
@@ -781,8 +780,7 @@ async function deleteEvent() {
   sendPushSilent((profile?.name||'Alguém') + ' removeu: ' + delTitle);
   closeModal('ev-modal');
   await loadEvents();
-  renderCalendar();
-  renderDayEvents(selectedDate);
+  refreshView();
   toast('Evento eliminado');
 }
 
@@ -1462,12 +1460,16 @@ let broadcastChannel = null;
 let realtimeConnected = false;
 let refreshTimer = null;
 
+function refreshView() {
+  if (viewMode === 'week') renderWeekView();
+  else { renderCalendar(); renderDayEvents(selectedDate); }
+}
+
 function scheduleRefresh() {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(async () => {
     await loadEvents();
-    renderCalendar();
-    renderDayEvents(selectedDate);
+    refreshView();
   }, 200);
 }
 
@@ -1499,7 +1501,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 44;
+const CURRENT_BUILD = 45;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1537,8 +1539,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', async (e) => {
     if (e.data?.type === 'REFRESH_EVENTS' && user) {
       await loadEvents();
-      renderCalendar();
-      renderDayEvents(selectedDate);
+      refreshView();
     }
   });
 }
@@ -1549,8 +1550,7 @@ document.addEventListener('visibilitychange', async () => {
     // Atualiza calendário ao voltar ao ecrã (fallback para quando Realtime cai no mobile)
     if (user) {
       await loadEvents();
-      renderCalendar();
-      renderDayEvents(selectedDate);
+      refreshView();
     }
   }
 });
