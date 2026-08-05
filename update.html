@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A atualizar NossaAgenda...</title>
+  <style>
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #0ea5e9, #06b6d4); color: white; text-align: center; padding: 24px; }
+    .spin { font-size: 48px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { opacity: .8; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="spin">🔄</div>
+  <h1>A atualizar NossaAgenda</h1>
+  <p>Aguarda um momento...</p>
+  <script>
+    (async () => {
+      try {
+        // 1. Desregistar todos os service workers
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        // 2. Limpar todas as caches
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      } catch(e) {}
+      // 3. Redirecionar para a app sem cache
+      window.location.href = '/?v=' + Date.now();
+    })();
+  </script>
+</body>
+</html>
