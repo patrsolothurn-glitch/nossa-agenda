@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 50</div>
+      <div class="h-build">v 51</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -258,8 +258,8 @@
   <!-- Calendar -->
   <div class="cal-section">
     <div class="view-toggle">
-      <button class="vt-btn active" id="btn-week" onclick="setViewMode('week')">Semana</button>
-      <button class="vt-btn" id="btn-month" onclick="setViewMode('month')">Mês</button>
+      <button class="vt-btn" id="btn-week" onclick="setViewMode('week')">Semana</button>
+      <button class="vt-btn active" id="btn-month" onclick="setViewMode('month')">Mês</button>
     </div>
     <div class="cal-nav">
       <button onclick="navigatePrev()">‹</button>
@@ -1519,7 +1519,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 50;
+const CURRENT_BUILD = 51;
 let updatePending = false;
 
 async function checkForUpdate() {
