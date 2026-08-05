@@ -1,5 +1,5 @@
-const CACHE = 'nossa-agenda-v55';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'nossa-agenda-v56';
+const ASSETS = ['/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -17,12 +17,23 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+
+  // HTML (index.html, /): network-first — garante versão mais recente
+  if (e.request.headers.get('accept')?.includes('text/html') || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Outros recursos (ícones, manifest): cache-first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      if (res.ok) {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-      }
+      if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
       return res;
     }))
   );
@@ -38,7 +49,6 @@ self.addEventListener('push', e => {
         badge: '/icons/icon-192.png',
         vibrate: [200, 100, 200],
       }),
-      // Avisa todos os tabs/janelas abertas para refresh imediato
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
         clients.forEach(c => c.postMessage({ type: 'REFRESH_EVENTS' }));
       })
