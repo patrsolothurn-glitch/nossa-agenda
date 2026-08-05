@@ -250,13 +250,13 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 57</div>
+      <div class="h-build">v 58</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
 
   <!-- Member filter -->
-  <div id="member-filter" style="background:linear-gradient(135deg,#0ea5e9,#06b6d4);padding:0 16px 16px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none"></div>
+  <div id="member-filter" style="background:linear-gradient(135deg,#0ea5e9,#06b6d4);padding:0 20px 16px 20px;display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
 
   <!-- Calendar -->
   <div class="cal-section">
@@ -870,7 +870,7 @@ function renderMemberFilter() {
       circle.textContent = (m.name||'?')[0].toUpperCase();
     }
     const label = document.createElement('div');
-    label.style.cssText = 'font-size:11px;font-weight:600;color:white;white-space:nowrap;max-width:56px;overflow:hidden;text-overflow:ellipsis;text-align:center';
+    label.style.cssText = 'font-size:11px;font-weight:600;color:white;white-space:nowrap;text-align:center';
     label.textContent = m.name?.split(' ')[0] || m.email?.split('@')[0] || '?';
     btn.appendChild(circle);
     btn.appendChild(label);
@@ -1544,7 +1544,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 57;
+const CURRENT_BUILD = 58;
 let updatePending = false;
 
 async function checkForUpdate() {
