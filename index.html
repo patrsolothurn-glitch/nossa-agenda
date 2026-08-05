@@ -6,6 +6,9 @@
   <title>NossaAgenda</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0ea5e9">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NossaAgenda">
@@ -247,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 56</div>
+      <div class="h-build">v 57</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -504,6 +507,10 @@ let viewMode = 'month';
 
 // ========== INIT ==========
 (async () => {
+  // Limpar parâmetro ?v= do URL sem recarregar (aparece após forceRefresh)
+  if (window.location.search.includes('v=')) {
+    window.history.replaceState({}, '', '/');
+  }
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
@@ -651,7 +658,10 @@ async function forceRefresh() {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => caches.delete(k)));
   } catch {}
-  setTimeout(() => window.location.reload(true), 500);
+  // Redireciona com timestamp para bypassar qualquer cache
+  setTimeout(() => {
+    window.location.href = 'https://nossaagenda.ch/?v=' + Date.now();
+  }, 600);
 }
 
 function togglePass(id, btn) {
@@ -1534,7 +1544,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 56;
+const CURRENT_BUILD = 57;
 let updatePending = false;
 
 async function checkForUpdate() {
