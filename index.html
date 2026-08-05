@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 60</div>
+      <div class="h-build">v 61</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -323,11 +323,15 @@
       <div class="row2">
         <div>
           <label class="fl">Hora início</label>
-          <input type="time" class="fi" id="ev-time-start-h" style="width:100%">
+          <input type="text" inputmode="numeric" class="fi" id="ev-time-start-h"
+            placeholder="08:00" maxlength="5" style="width:100%;letter-spacing:2px"
+            oninput="fmtTime(this)">
         </div>
         <div>
           <label class="fl">Hora fim</label>
-          <input type="time" class="fi" id="ev-time-end-h" style="width:100%">
+          <input type="text" inputmode="numeric" class="fi" id="ev-time-end-h"
+            placeholder="09:00" maxlength="5" style="width:100%;letter-spacing:2px"
+            oninput="fmtTime(this)">
         </div>
       </div>
     </div>
@@ -1304,6 +1308,12 @@ function renderMemberPicker() {
   });
 }
 
+function fmtTime(inp) {
+  let v = inp.value.replace(/[^0-9]/g,'');
+  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2,4);
+  inp.value = v;
+}
+
 function syncEndDate(startVal) {
   const endInput = document.getElementById('ev-date-end');
   if (!endInput.value || endInput.value < startVal) endInput.value = startVal;
@@ -1644,7 +1654,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 60;
+const CURRENT_BUILD = 61;
 let updatePending = false;
 
 async function checkForUpdate() {
