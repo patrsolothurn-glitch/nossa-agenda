@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 58</div>
+      <div class="h-build">v 59</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -426,6 +426,10 @@
       <div class="mi-icon" style="background:#e0f2fe">🔔</div>
       <span id="push-status-text">Ativar notificações</span>
     </div>
+    <div class="menu-item" onclick="openSettings()">
+      <div class="mi-icon" style="background:#f1f5f9">⚙️</div>
+      <span>Definições</span>
+    </div>
     <div class="menu-item" onclick="shareInvite()">
       <div class="mi-icon" style="background:#f0fdf4">👤</div>
       <span>Convidar membro</span>
@@ -445,6 +449,38 @@
 <div class="update-banner" id="update-banner">
   🔄 Nova versão disponível
   <button class="update-btn" onclick="applyUpdate()">Atualizar</button>
+</div>
+
+<!-- ===== SETTINGS MODAL ===== -->
+<div class="overlay" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="sh-title">⚙️ Definições</div>
+
+    <div class="sec-title">Perfil</div>
+    <div class="ff">
+      <label class="fl">Nome de exibição</label>
+      <input type="text" class="fi" id="set-name" placeholder="O teu nome">
+    </div>
+
+    <div class="sec-title">Calendário</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
+      <span style="font-size:15px;font-weight:500">Vista padrão ao abrir</span>
+    </div>
+    <div style="display:flex;background:#f1f5f9;border-radius:16px;padding:3px;gap:2px;margin-top:8px">
+      <button id="set-month-btn" onclick="setDefaultView('month')" style="flex:1;padding:9px;border:none;border-radius:13px;font-size:14px;font-weight:700;cursor:pointer;background:#0ea5e9;color:white;transition:all .2s">Mês</button>
+      <button id="set-week-btn" onclick="setDefaultView('week')" style="flex:1;padding:9px;border:none;border-radius:13px;font-size:14px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;transition:all .2s">Semana</button>
+    </div>
+
+    <div class="sec-title">Notificações</div>
+    <div class="menu-item" onclick="activatePush()" style="border:none;padding:8px 0">
+      <div class="mi-icon" style="background:#e0f2fe">🔔</div>
+      <span id="set-push-text">Ativar notificações</span>
+    </div>
+
+    <button class="btn-p" onclick="saveSettings()" style="margin-top:16px">✓ Guardar</button>
+    <button class="btn-ghost" onclick="closeModal('settings-modal')">Fechar</button>
+  </div>
 </div>
 
 <!-- ===== VIRTUAL MEMBER MODAL ===== -->
@@ -503,7 +539,8 @@ let allDay = false;
 let selCat = "familia";
 let selIcon = "📅";
 let logoTaps = 0, logoTimer = null;
-let viewMode = 'month';
+let defaultView = localStorage.getItem('defaultView') || 'month';
+let viewMode = defaultView;
 
 // ========== INIT ==========
 (async () => {
@@ -532,6 +569,9 @@ async function boot() {
   renderMemberFilter(); // garante que membros virtuais aparecem no filtro
   await loadEvents();
   setupRealtime();
+  // Aplicar vista padrão salva
+  document.getElementById('btn-month')?.classList.toggle('active', viewMode==='month');
+  document.getElementById('btn-week')?.classList.toggle('active', viewMode==='week');
   if (viewMode === 'week') renderWeekView();
   else { renderCalendar(); renderDayEvents(selectedDate); }
 }
@@ -609,6 +649,51 @@ async function doRegister() {
   err.textContent = '✓ Conta criada! Podes entrar agora.';
   switchTab('login');
   document.getElementById('l-email').value = email;
+}
+
+function openSettings() {
+  closeModal('user-menu');
+  setTimeout(async () => {
+    // Preencher nome atual
+    document.getElementById('set-name').value = profile?.name || '';
+    // Vista padrão
+    const dv = localStorage.getItem('defaultView') || 'month';
+    setDefaultView(dv, false);
+    // Push status
+    try {
+      const reg = await navigator.serviceWorker?.ready;
+      const sub = await reg?.pushManager?.getSubscription();
+      document.getElementById('set-push-text').textContent = sub ? '🔔 Notificações ativas ✓' : 'Ativar notificações';
+    } catch {}
+    openModal('settings-modal');
+  }, 200);
+}
+
+function setDefaultView(mode, save = true) {
+  const btnM = document.getElementById('set-month-btn');
+  const btnW = document.getElementById('set-week-btn');
+  if (btnM) { btnM.style.background = mode==='month'?'#0ea5e9':'transparent'; btnM.style.color = mode==='month'?'white':'#64748b'; }
+  if (btnW) { btnW.style.background = mode==='week'?'#0ea5e9':'transparent'; btnW.style.color = mode==='week'?'white':'#64748b'; }
+  if (save) localStorage.setItem('defaultView', mode);
+}
+
+async function saveSettings() {
+  const name = document.getElementById('set-name').value.trim();
+  if (name && name !== profile?.name) {
+    const { error } = await sb.from('profiles').update({ name }).eq('id', user.id);
+    if (!error) {
+      if (!profile) profile = {};
+      profile.name = name;
+      updateAvatarDisplay();
+      const m = members.find(m => m.id === user.id);
+      if (m) m.name = name;
+      renderMemberFilter();
+    }
+  }
+  // Guardar vista padrão
+  defaultView = localStorage.getItem('defaultView') || 'month';
+  closeModal('settings-modal');
+  toast('Definições guardadas ✓');
 }
 
 function shareInvite() {
@@ -1014,6 +1099,9 @@ async function changeMonth(dir) {
   selectedDate = (viewDate.getFullYear()===today.getFullYear()&&viewDate.getMonth()===today.getMonth())
     ? new Date() : new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
   await loadEvents();
+  // Aplicar vista padrão salva
+  document.getElementById('btn-month')?.classList.toggle('active', viewMode==='month');
+  document.getElementById('btn-week')?.classList.toggle('active', viewMode==='week');
   if (viewMode === 'week') renderWeekView();
   else { renderCalendar(); renderDayEvents(selectedDate); }
 }
@@ -1288,6 +1376,9 @@ async function adminDelEv(id) {
   toast('Eliminado');
   await loadAdminData();
   await loadEvents();
+  // Aplicar vista padrão salva
+  document.getElementById('btn-month')?.classList.toggle('active', viewMode==='month');
+  document.getElementById('btn-week')?.classList.toggle('active', viewMode==='week');
   if (viewMode === 'week') renderWeekView();
   else { renderCalendar(); renderDayEvents(selectedDate); }
 }
@@ -1504,6 +1595,9 @@ let realtimeConnected = false;
 let refreshTimer = null;
 
 function refreshView() {
+  // Aplicar vista padrão salva
+  document.getElementById('btn-month')?.classList.toggle('active', viewMode==='month');
+  document.getElementById('btn-week')?.classList.toggle('active', viewMode==='week');
   if (viewMode === 'week') renderWeekView();
   else { renderCalendar(); renderDayEvents(selectedDate); }
 }
@@ -1544,7 +1638,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 58;
+const CURRENT_BUILD = 59;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1591,11 +1685,12 @@ document.addEventListener('visibilitychange', async () => {
   if (!document.hidden) {
     checkForUpdate();
     if (user) {
-      // Reset para vista Mês ao voltar à app
-      if (viewMode !== 'month') {
-        viewMode = 'month';
-        document.getElementById('btn-month')?.classList.add('active');
-        document.getElementById('btn-week')?.classList.remove('active');
+      // Reset para vista padrão ao voltar à app
+      const dv = localStorage.getItem('defaultView') || 'month';
+      if (viewMode !== dv) {
+        viewMode = dv;
+        document.getElementById('btn-month')?.classList.toggle('active', dv==='month');
+        document.getElementById('btn-week')?.classList.toggle('active', dv==='week');
       }
       await loadEvents();
       refreshView();
