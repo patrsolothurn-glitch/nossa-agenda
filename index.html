@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 53</div>
+      <div class="h-build">v 54</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1534,7 +1534,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 53;
+const CURRENT_BUILD = 54;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1580,8 +1580,13 @@ if ('serviceWorker' in navigator) {
 document.addEventListener('visibilitychange', async () => {
   if (!document.hidden) {
     checkForUpdate();
-    // Atualiza calendário ao voltar ao ecrã (fallback para quando Realtime cai no mobile)
     if (user) {
+      // Reset para vista Mês ao voltar à app
+      if (viewMode !== 'month') {
+        viewMode = 'month';
+        document.getElementById('btn-month')?.classList.add('active');
+        document.getElementById('btn-week')?.classList.remove('active');
+      }
       await loadEvents();
       refreshView();
     }
