@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 51</div>
+      <div class="h-build">v 52</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -754,29 +754,41 @@ async function saveEvent() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { toast('Sessão expirada, entra novamente'); showLogin(); return; }
 
-  const { error } = editId
-    ? await sb.from('events').update(payload).eq('id', editId)
-    : await sb.from('events').insert(payload);
+  const { data: saved, error } = editId
+    ? await sb.from('events').update(payload).eq('id', editId).select().single()
+    : await sb.from('events').insert(payload).select().single();
   if (error) { console.error('Save error:', JSON.stringify(error)); toast('Erro: ' + (error.message||error.code||'desconhecido')); return; }
 
-  // Notificar todos (criar OU editar)
+  // Notificar todos
   const _msg = editId
     ? (profile?.name||'Alguém') + ' atualizou: ' + title
     : (profile?.name||'Alguém') + ' adicionou: ' + title;
   sendPushSilent(_msg);
 
+  // ── Optimistic update: atualiza array local imediatamente sem esperar rede
+  const enriched = { ...(saved || payload),
+    id: saved?.id || editId,
+    profiles: { name: profile?.name, is_admin: profile?.is_admin, avatar_url: profile?.avatar_url }
+  };
+  if (editId) {
+    const idx = events.findIndex(e => e.id === editId);
+    if (idx >= 0) events[idx] = enriched; else events.push(enriched);
+  } else {
+    events.push(enriched);
+  }
+
   closeModal('ev-modal');
-  // Navega para a data do evento e reset do filtro para mostrar tudo
   const [ey,em,ed] = sd.split('-').map(Number); const eventDate = new Date(ey, em-1, ed);
-  if (viewDate.getFullYear() !== eventDate.getFullYear() || viewDate.getMonth() !== eventDate.getMonth()) {
-    viewDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
+  if (viewDate.getFullYear() !== ey || viewDate.getMonth() !== em - 1) {
+    viewDate = new Date(ey, em-1, 1);
   }
   selectedDate = eventDate;
   filterMember = null;
-  await loadEvents();
   renderMemberFilter();
-  refreshView(); // respeita o modo Semana ou Mês
+  refreshView(); // render imediato com dados locais
   toast(editId ? 'Evento atualizado ✓' : 'Evento criado ✓');
+  // Sincronizar com servidor em background
+  loadEvents().then(() => refreshView());
 }
 
 async function deleteEvent() {
@@ -785,10 +797,13 @@ async function deleteEvent() {
   const { error: delErr } = await sb.from('events').delete().eq('id', editId);
   if (delErr) { toast('Erro ao eliminar: ' + (delErr.message||'')); return; }
   sendPushSilent((profile?.name||'Alguém') + ' removeu: ' + delTitle);
+  // Optimistic: remove do array local imediatamente
+  events = events.filter(e => e.id !== editId);
   closeModal('ev-modal');
-  await loadEvents();
-  refreshView();
+  refreshView(); // render imediato
   toast('Evento eliminado');
+  // Sincronizar com servidor em background
+  loadEvents().then(() => refreshView());
 }
 
 // ========== MEMBERS FILTER ==========
@@ -1519,7 +1534,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 51;
+const CURRENT_BUILD = 52;
 let updatePending = false;
 
 async function checkForUpdate() {
