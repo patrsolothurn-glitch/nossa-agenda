@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 49</div>
+      <div class="h-build">v 50</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1278,7 +1278,7 @@ async function activatePush() {
   closeModal('user-menu');
   if (!('Notification' in window)) { toast('Notificações não suportadas'); return; }
   const perm = await Notification.requestPermission();
-  if (perm !== 'granted') { toast('Permissão negada'); return; }
+  if (perm !== 'granted') { toast('Bloqueado — vai a Definições > Chrome > Notificações e permite nossaagenda.ch'); return; }
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(VAPID_PUB_KEY) });
@@ -1519,7 +1519,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 49;
+const CURRENT_BUILD = 50;
 let updatePending = false;
 
 async function checkForUpdate() {
