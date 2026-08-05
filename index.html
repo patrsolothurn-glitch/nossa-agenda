@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 59</div>
+      <div class="h-build">v 60</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -320,10 +320,16 @@
     </div>
 
     <div class="ff hidden" id="time-fields">
-      <label class="fl">Hora início</label>
-      <input type="time" class="fi" id="ev-time-start-h" style="width:100%;margin-bottom:10px">
-      <label class="fl">Hora fim (opcional)</label>
-      <input type="time" class="fi" id="ev-time-end-h" style="width:100%">
+      <div class="row2">
+        <div>
+          <label class="fl">Hora início</label>
+          <input type="time" class="fi" id="ev-time-start-h" style="width:100%">
+        </div>
+        <div>
+          <label class="fl">Hora fim</label>
+          <input type="time" class="fi" id="ev-time-end-h" style="width:100%">
+        </div>
+      </div>
     </div>
 
     <div class="ff">
@@ -333,7 +339,7 @@
 
     <div class="ff">
       <label class="fl">Para quem é? <span style="font-weight:400;color:#94a3b8">(opcional)</span></label>
-      <div id="member-picker" style="display:flex;gap:10px;flex-wrap:wrap;padding:4px 0"></div>
+      <div id="member-picker" style="display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;justify-content:flex-start"></div>
     </div>
     <button class="btn-p" onclick="saveEvent()">✓ Guardar</button>
     <button class="btn-d hidden" id="ev-del-btn" onclick="deleteEvent()">Eliminar evento</button>
@@ -1638,7 +1644,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 59;
+const CURRENT_BUILD = 60;
 let updatePending = false;
 
 async function checkForUpdate() {
