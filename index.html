@@ -247,7 +247,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 54</div>
+      <div class="h-build">v 55</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1534,7 +1534,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 54;
+const CURRENT_BUILD = 55;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1543,12 +1543,12 @@ async function checkForUpdate() {
     const { build } = await res.json();
     if (build > CURRENT_BUILD && !updatePending) {
       updatePending = true;
-      if (document.hidden || !user) {
-        // App em background ou sem sessão: atualiza logo
-        await applyUpdate();
+      // Atualiza sempre automaticamente (com aviso breve se app em uso)
+      if (!document.hidden && user) {
+        toast('🔄 Nova versão — a atualizar...');
+        setTimeout(applyUpdate, 2000);
       } else {
-        // App em uso: mostra banner não-intrusivo
-        document.getElementById('update-banner').style.display = 'flex';
+        await applyUpdate();
       }
     }
   } catch {}

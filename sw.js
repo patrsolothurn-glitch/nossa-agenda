@@ -1,4 +1,4 @@
-const CACHE = 'nossa-agenda-v54';
+const CACHE = 'nossa-agenda-v55';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
