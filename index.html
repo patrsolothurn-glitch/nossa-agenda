@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 62</div>
+      <div class="h-build">v 63</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -823,7 +823,7 @@ async function loadEvents() {
 function eventsForDay(date, all = false) {
   const ds = toDateStr(date);
   let evs = events.filter(e => e.start_date <= ds && (e.end_date || e.start_date) >= ds);
-  if (filterMember && !all) {
+  if (filterMember) {
     evs = evs.filter(e => {
       if (e.created_by === filterMember) return true;
       try { return JSON.parse(e.assigned_to||'[]').includes(filterMember); } catch { return false; }
@@ -1654,7 +1654,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 62;
+const CURRENT_BUILD = 63;
 let updatePending = false;
 
 async function checkForUpdate() {
