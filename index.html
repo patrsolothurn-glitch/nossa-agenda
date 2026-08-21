@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 72</div>
+      <div class="h-build">v 73</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -792,8 +792,7 @@ async function doLogin() {
     if (error) {
       err.textContent = error.message || 'Email ou password incorretos.';
       err.style.cssText = 'display:block;color:#ef4444;font-weight:600;font-size:14px;text-align:center;margin-top:8px';
-    } else if (data?.session) {
-      user = data.session.user;
+    } else {
       err.style.display = 'none';
       await boot();
     }
@@ -1763,7 +1762,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 72;
+const CURRENT_BUILD = 73;
 let updatePending = false;
 
 async function checkForUpdate() {
