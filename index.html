@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 70</div>
+      <div class="h-build">v 71</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -774,17 +774,31 @@ function sendWhatsAppInvite() {
 }
 
 async function doLogin() {
-  const email = document.getElementById('l-email').value.trim();
-  const pass  = document.getElementById('l-pass').value;
-  const err   = document.getElementById('login-err');
-  const btn   = document.getElementById('login-btn');
-  err.style.display = 'none';
-  if (!email || !pass) { err.textContent = 'Preenche email e password.'; err.style.display = 'block'; return; }
-  btn.textContent = 'A entrar...'; btn.disabled = true;
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  btn.textContent = 'Entrar'; btn.disabled = false;
-  if (error) { err.textContent = 'Email ou password incorretos.'; err.style.display = 'block'; }
-  else { err.style.display = 'none'; boot(); }
+  try {
+    const email = document.getElementById('l-email').value.trim();
+    const pass  = document.getElementById('l-pass').value;
+    const err   = document.getElementById('login-err');
+    const btn   = document.getElementById('login-btn');
+    err.style.display = 'none';
+    if (!email || !pass) {
+      err.textContent = 'Preenche email e password.';
+      err.style.cssText = 'display:block;color:#ef4444;font-weight:600;font-size:14px;text-align:center;margin-top:8px';
+      return;
+    }
+    btn.textContent = 'A entrar...'; btn.disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    btn.textContent = 'Entrar'; btn.disabled = false;
+    if (error) {
+      err.textContent = error.message || 'Email ou password incorretos.';
+      err.style.cssText = 'display:block;color:#ef4444;font-weight:600;font-size:14px;text-align:center;margin-top:8px';
+    } else if (data?.session) {
+      user = data.session.user;
+      err.style.display = 'none';
+      await boot();
+    }
+  } catch(e) {
+    alert('Erro login: ' + e.message);
+  }
 }
 
 async function forceRefresh() {
@@ -1748,7 +1762,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 70;
+const CURRENT_BUILD = 71;
 let updatePending = false;
 
 async function checkForUpdate() {
