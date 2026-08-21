@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 71</div>
+      <div class="h-build">v 72</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -564,6 +564,7 @@ let viewMode = defaultView;
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  checkForUpdate(); // verificar atualização imediatamente ao iniciar
   const { data: { session } } = await sb.auth.getSession();
   if (session) { user = session.user; await boot(); }
   else showLogin();
@@ -1762,7 +1763,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 71;
+const CURRENT_BUILD = 72;
 let updatePending = false;
 
 async function checkForUpdate() {
