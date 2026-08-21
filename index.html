@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 66</div>
+      <div class="h-build">v 67</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -396,7 +396,10 @@
     <div id="admin-vmembers"></div>
     <button class="btn-notify" onclick="openAddVirtualMember()">➕ Adicionar membro sem conta</button>
 
-    <button class="btn-ghost" style="margin-top:20px" onclick="closeModal('admin-panel')">Fechar</button>
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <button id="stealth-btn" class="btn-ghost" onclick="toggleStealth()" style="flex:1;background:#1e293b;color:white;border:none">🕵️ Modo Furtivo</button>
+      <button class="btn-ghost" onclick="closeModal('admin-panel')" style="flex:1">Fechar</button>
+    </div>
   </div>
 </div>
 
@@ -550,6 +553,7 @@ let selCat = "familia";
 let selIcon = "📅";
 let logoTaps = 0, logoTimer = null;
 let defaultView = localStorage.getItem('defaultView') || 'month';
+let stealthMode = false;
 let viewMode = defaultView;
 
 // ========== INIT ==========
@@ -660,6 +664,39 @@ async function doRegister() {
   err.textContent = '✓ Conta criada! Podes entrar agora.';
   switchTab('login');
   document.getElementById('l-email').value = email;
+}
+
+function toggleStealth() {
+  stealthMode = !stealthMode;
+  closeModal('admin-panel');
+  updateStealthUI();
+  if (stealthMode) toast('🕵️ Modo furtivo ativo — invisible');
+  else toast('Modo normal');
+}
+
+function updateStealthUI() {
+  const hav = document.getElementById('h-avatar');
+  const header = document.querySelector('.h-top');
+  if (stealthMode) {
+    // Esconde avatar e blinda notificações
+    if (hav) { hav.style.opacity = '0'; hav.style.pointerEvents = 'none'; }
+    // Indicador furtivo discreto
+    let ind = document.getElementById('stealth-ind');
+    if (!ind) {
+      ind = document.createElement('div');
+      ind.id = 'stealth-ind';
+      ind.onclick = toggleStealth;
+      ind.style.cssText = 'position:fixed;bottom:80px;right:16px;background:#1e293b;color:white;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;z-index:997;cursor:pointer;opacity:.8';
+      ind.textContent = '🕵️ Furtivo — toca para sair';
+      document.body.appendChild(ind);
+    }
+    ind.style.display = 'block';
+  } else {
+    if (hav) { hav.style.opacity = ''; hav.style.pointerEvents = ''; }
+    const ind = document.getElementById('stealth-ind');
+    if (ind) ind.style.display = 'none';
+    updateAvatarDisplay();
+  }
 }
 
 function openSettings() {
@@ -1552,7 +1589,8 @@ async function deleteVirtualMember(id) {
 }
 
 function sendPushSilent(message) {
-  broadcastChange(); // broadcast instantâneo para quem está online
+  if (stealthMode) return; // modo furtivo: sem notificações, sem rasto
+  broadcastChange();
   const p = new URLSearchParams({ title: '📅 NossaAgenda', message, apikey: SUPABASE_KEY });
   fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p).catch(() => {});
 }
@@ -1703,7 +1741,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 66;
+const CURRENT_BUILD = 67;
 let updatePending = false;
 
 async function checkForUpdate() {
