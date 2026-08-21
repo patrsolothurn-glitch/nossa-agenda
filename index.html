@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 68</div>
+      <div class="h-build">v 69</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -607,10 +607,12 @@ function showApp() {
   updatePushStatus();
   updateAvatarDisplay();
   // Admin entra sempre em modo furtivo automaticamente
-  if (profile?.is_admin && !stealthMode) {
-    stealthMode = true;
-    updateStealthUI();
-  }
+  try {
+    if (profile?.is_admin && !stealthMode) {
+      stealthMode = true;
+      updateStealthUI();
+    }
+  } catch {}
 }
 
 function updateAvatarDisplay() {
@@ -1745,7 +1747,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 68;
+const CURRENT_BUILD = 69;
 let updatePending = false;
 
 async function checkForUpdate() {
