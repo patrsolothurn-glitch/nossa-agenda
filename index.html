@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 64</div>
+      <div class="h-build">v 65</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -577,6 +577,7 @@ async function boot() {
   await loadMembers();
   await loadVirtualMembers();
   renderMemberFilter(); // garante que membros virtuais aparecem no filtro
+  autoArchive(); // arquivo automático silencioso (fire-and-forget)
   await loadEvents();
   setupRealtime();
   // Aplicar vista padrão salva
@@ -804,6 +805,7 @@ async function loadEvents() {
   const end   = toDateStr(new Date(y, m + 1, 0));   // garante dia 31 em UTC+1/+2
   const { data, error } = await sb.from('events')
     .select('*, profiles(name,is_admin,avatar_url)')
+    .eq('archived', false)
     .gte('start_date', start)
     .lte('start_date', end)
     .order('start_date');
@@ -811,6 +813,7 @@ async function loadEvents() {
     console.warn('loadEvents join error, a tentar sem profiles:', error.message);
     const { data: data2 } = await sb.from('events')
       .select('*, profiles(name,is_admin,avatar_url)')
+      .eq('archived', false)
       .gte('start_date', start)
       .lte('start_date', end)
       .order('start_date');
@@ -1629,6 +1632,27 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ========== AUTO-ARCHIVE ==========
+async function autoArchive() {
+  try {
+    // Arquivar eventos anteriores ao início da semana actual
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay()); // domingo desta semana
+    const cutoff = toDateStr(weekStart);
+    await sb.from('events')
+      .update({ archived: true })
+      .lt('end_date', cutoff)  // só eventos cujo fim já passou
+      .eq('archived', false);
+    // Também arquiva eventos sem end_date que começaram antes desta semana
+    await sb.from('events')
+      .update({ archived: true })
+      .lt('start_date', cutoff)
+      .is('end_date', null)
+      .eq('archived', false);
+  } catch {} // silencioso
+}
+
 // ========== REALTIME (broadcast + postgres_changes) ==========
 let realtimeChannel = null;
 let broadcastChannel = null;
@@ -1679,7 +1703,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 64;
+const CURRENT_BUILD = 65;
 let updatePending = false;
 
 async function checkForUpdate() {
@@ -1726,6 +1750,7 @@ document.addEventListener('visibilitychange', async () => {
   if (!document.hidden) {
     checkForUpdate();
     if (user) {
+      autoArchive(); // verificar arquivo ao voltar à app
       // Reset para vista padrão ao voltar à app
       const dv = localStorage.getItem('defaultView') || 'month';
       if (viewMode !== dv) {
