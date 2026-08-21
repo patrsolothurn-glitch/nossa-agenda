@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 73</div>
+      <div class="h-build">v 74</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1444,7 +1444,7 @@ async function loadAdminData() {
       const hdr=document.createElement('div');
       hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;border-bottom:1px solid #f1f5f9;margin-top:8px';
       hdr.innerHTML='<span style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase">'+label+' ('+ids.length+')</span>'
-        +'<button onclick="adminArchiveMonth(''+key+'','+JSON.stringify(ids)+')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🗑 Arquivar</button>';
+        +'<button onclick="adminArchiveMonth(\''+key+'\','+JSON.stringify(ids)+')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🗑 Arquivar</button>';
       eel.appendChild(hdr);
       groups[key].forEach(ev => {
         const cat=CATS.find(c=>c.id===ev.category)||CATS[0];
@@ -1452,7 +1452,7 @@ async function loadAdminData() {
         row.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+cat.color+';flex-shrink:0"></div>'
           +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ev.title+'</div>'
           +'<div style="font-size:12px;color:#94a3b8">'+ev.start_date+' · '+(ev.profiles?.name||'?')+'</div></div>'
-          +'<button onclick="adminDelEv(''+ev.id+'')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>';
+          +'<button onclick="adminDelEv(\''+ev.id+'\')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>';
         eel.appendChild(row);
       });
     });
@@ -1762,7 +1762,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 73;
+const CURRENT_BUILD = 74;
 let updatePending = false;
 
 async function checkForUpdate() {
