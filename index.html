@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 65</div>
+      <div class="h-build">v 66</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -805,7 +805,6 @@ async function loadEvents() {
   const end   = toDateStr(new Date(y, m + 1, 0));   // garante dia 31 em UTC+1/+2
   const { data, error } = await sb.from('events')
     .select('*, profiles(name,is_admin,avatar_url)')
-    .eq('archived', false)
     .gte('start_date', start)
     .lte('start_date', end)
     .order('start_date');
@@ -813,7 +812,6 @@ async function loadEvents() {
     console.warn('loadEvents join error, a tentar sem profiles:', error.message);
     const { data: data2 } = await sb.from('events')
       .select('*, profiles(name,is_admin,avatar_url)')
-      .eq('archived', false)
       .gte('start_date', start)
       .lte('start_date', end)
       .order('start_date');
@@ -1081,13 +1079,15 @@ function createEventCard(ev) {
   }</span>` : '';
   const card = document.createElement('div');
   card.className = 'ev-card';
+  const isArchived = ev.archived === true;
+  card.style.opacity = isArchived ? '0.45' : '1';
   card.innerHTML = `
-    <div class="ev-dot" style="background:${cat.color}"></div>
+    <div class="ev-dot" style="background:${cat.color}${isArchived?';opacity:.5':''}"></div>
     <div class="ev-info">
-      <div class="ev-title">${ev.title}</div>
-      <div class="ev-meta">${timeStr}${creatorHtml}${assignedHtml}</div>
+      <div class="ev-title" style="${isArchived?'text-decoration:line-through;color:#94a3b8':''}">${ev.title}</div>
+      <div class="ev-meta">${timeStr}${creatorHtml}${assignedHtml}${isArchived?' · <span style="font-size:10px;color:#cbd5e1">arquivado</span>':''}</div>
     </div>
-    <div class="ev-badge" style="background:${cat.color}">${cat.label}</div>`;
+    <div class="ev-badge" style="background:${cat.color};${isArchived?'opacity:.5':''}">${cat.label}</div>`;
   card.addEventListener('click', () => openEventModal(ev));
   return card;
 }
@@ -1703,7 +1703,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 65;
+const CURRENT_BUILD = 66;
 let updatePending = false;
 
 async function checkForUpdate() {
