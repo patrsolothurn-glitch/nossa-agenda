@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 63</div>
+      <div class="h-build">v 64</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1372,18 +1372,43 @@ async function loadAdminData() {
   });
 
   const eel = document.getElementById('admin-events'); eel.innerHTML = '';
-  (evs || []).forEach(ev => {
-    const cat = CATS.find(c => c.id === ev.category) || CATS[0];
-    const row = document.createElement('div'); row.className = 'admin-ev-row';
-    row.innerHTML = `
-      <div style="width:8px;height:8px;border-radius:50%;background:${cat.color};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.title}</div>
-        <div style="font-size:12px;color:#94a3b8">${ev.start_date} · ${ev.profiles?.name||'?'}</div>
-      </div>
-      <button onclick="adminDelEv('${ev.id}')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>`;
-    eel.appendChild(row);
-  });
+  if ((evs||[]).length) {
+    const MNAMES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const groups={};
+    (evs||[]).forEach(ev => { const k=ev.start_date?.slice(0,7)||''; if(!groups[k])groups[k]=[]; groups[k].push(ev); });
+    Object.keys(groups).sort().reverse().forEach(key => {
+      const [y,m]=key.split('-');
+      const label=(MNAMES[parseInt(m)-1]||m)+' '+y;
+      const ids=groups[key].map(e=>e.id);
+      const hdr=document.createElement('div');
+      hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;border-bottom:1px solid #f1f5f9;margin-top:8px';
+      hdr.innerHTML='<span style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase">'+label+' ('+ids.length+')</span>'
+        +'<button onclick="adminArchiveMonth(''+key+'','+JSON.stringify(ids)+')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🗑 Arquivar</button>';
+      eel.appendChild(hdr);
+      groups[key].forEach(ev => {
+        const cat=CATS.find(c=>c.id===ev.category)||CATS[0];
+        const row=document.createElement('div'); row.className='admin-ev-row';
+        row.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+cat.color+';flex-shrink:0"></div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ev.title+'</div>'
+          +'<div style="font-size:12px;color:#94a3b8">'+ev.start_date+' · '+(ev.profiles?.name||'?')+'</div></div>'
+          +'<button onclick="adminDelEv(''+ev.id+'')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>';
+        eel.appendChild(row);
+      });
+    });
+  } else { eel.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:8px 0">Sem eventos</div>'; }
+}
+
+async function adminArchiveMonth(key, ids) {
+  const MNAMES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [y,m]=key.split('-');
+  const label=(MNAMES[parseInt(m)-1]||m)+' '+y;
+  if (!confirm('Apagar os '+ids.length+' eventos de '+label+'?')) return;
+  const { error } = await sb.from('events').delete().in('id', ids);
+  if (error) { toast('Erro: '+error.message); return; }
+  events = events.filter(e => !ids.includes(e.id));
+  refreshView();
+  await loadAdminData();
+  toast(label+' arquivado ✓');
 }
 
 async function adminDelEv(id) {
@@ -1654,7 +1679,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 63;
+const CURRENT_BUILD = 64;
 let updatePending = false;
 
 async function checkForUpdate() {
