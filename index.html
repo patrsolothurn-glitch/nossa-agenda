@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 75</div>
+      <div class="h-build">v 76</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1388,10 +1388,19 @@ document.getElementById('time-fields').classList.toggle('hidden', allDay);
 
 // ========== ADMIN ==========
 function handleLogoTap() {
+  const now = Date.now();
+  // Se passou muito tempo desde o último toque, reinicia contagem
+  if (now - (window._lastLogoTap || 0) > 500) logoTaps = 0;
+  window._lastLogoTap = now;
   logoTaps++;
   clearTimeout(logoTimer);
-  if (logoTaps >= 3) { logoTaps = 0; openAdminPanel(); return; }
-  logoTimer = setTimeout(() => { logoTaps = 0; }, 700);
+  if (logoTaps >= 3) {
+    logoTaps = 0;
+    window._lastLogoTap = 0;
+    openAdminPanel();
+    return;
+  }
+  logoTimer = setTimeout(() => { logoTaps = 0; }, 500);
 }
 
 async function openAdminPanel() {
@@ -1774,7 +1783,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 75;
+const CURRENT_BUILD = 76;
 let updatePending = false;
 
 async function checkForUpdate() {
