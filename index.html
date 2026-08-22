@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 76</div>
+      <div class="h-build">v 77</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1010,7 +1010,7 @@ function renderMemberFilter() {
 
   // Member buttons (reais + virtuais)
   const colors = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-  getAllMembers().forEach((m, i) => {
+  getAllMembers().filter(m => !m.is_admin).forEach((m, i) => {
     const btn = document.createElement('div');
     btn.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';
     const circle = document.createElement('div');
@@ -1104,6 +1104,8 @@ function selectDay(date) {
 
 function creatorInfo(ev) {
   const MCOLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
+  const isAdminCreator = ev.profiles?.is_admin === true;
+  if (isAdminCreator) return { name: null, color: null, avatarUrl: null };
   const member = getAllMembers().find(m => m.id === ev.created_by);
   const name = ev.profiles?.name || member?.name || null;
   const avatarUrl = ev.profiles?.avatar_url || member?.avatar_url || null;
@@ -1344,7 +1346,7 @@ function renderMemberPicker() {
   if (!container) return;
   container.innerHTML = '';
   const COLORS = ['#f97316','#10b981','#a855f7','#ef4444','#3b82f6','#f59e0b'];
-  const allM = getAllMembers();
+  const allM = getAllMembers().filter(m => !m.is_admin);
   if (!allM.length) { container.innerHTML = '<div style="font-size:13px;color:#94a3b8">Sem membros</div>'; return; }
   allM.forEach((m, i) => {
     const isSel = selMembers.includes(m.id);
@@ -1783,7 +1785,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 76;
+const CURRENT_BUILD = 77;
 let updatePending = false;
 
 async function checkForUpdate() {
