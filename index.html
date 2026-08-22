@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 80</div>
+      <div class="h-build">v 81</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -384,7 +384,7 @@
     </div>
 
     <button class="btn-notify" onclick="openPushModal()">🔔 Enviar notificação a todos</button>
-    <button class="btn-notify" onclick="showMemberInfo()">👤 Adicionar membro (instruções)</button>
+    <button class="btn-notify" onclick="closeModal('admin-panel'); setTimeout(()=>openModal('invite-modal'),200)">➕ Adicionar membro</button>
 
     <div class="sec-title">Membros</div>
     <div id="admin-members"></div>
@@ -1710,16 +1710,12 @@ function toast(msg) {
 // ========== AUTO-ARCHIVE ==========
 async function autoArchive() {
   try {
-    // Arquivar eventos anteriores ao início da semana actual
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay()); // domingo desta semana
-    const cutoff = toDateStr(weekStart);
+    // Arquivar qualquer evento cuja data já passou (ontem ou antes)
+    const cutoff = toDateStr(new Date()); // hoje — tudo antes de hoje é arquivado
     await sb.from('events')
       .update({ archived: true })
-      .lt('end_date', cutoff)  // só eventos cujo fim já passou
+      .lt('end_date', cutoff)
       .eq('archived', false);
-    // Também arquiva eventos sem end_date que começaram antes desta semana
     await sb.from('events')
       .update({ archived: true })
       .lt('start_date', cutoff)
@@ -1778,7 +1774,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 80;
+const CURRENT_BUILD = 81;
 let updatePending = false;
 
 async function checkForUpdate() {
