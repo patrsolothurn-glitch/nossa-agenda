@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 74</div>
+      <div class="h-build">v 75</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1449,9 +1449,12 @@ async function loadAdminData() {
       groups[key].forEach(ev => {
         const cat=CATS.find(c=>c.id===ev.category)||CATS[0];
         const row=document.createElement('div'); row.className='admin-ev-row';
+        const arch = ev.archived === true;
+        row.style.opacity = arch ? '0.5' : '1';
         row.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+cat.color+';flex-shrink:0"></div>'
-          +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ev.title+'</div>'
-          +'<div style="font-size:12px;color:#94a3b8">'+ev.start_date+' · '+(ev.profiles?.name||'?')+'</div></div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(arch?'text-decoration:line-through':'')+'">'+ev.title+'</div>'
+          +'<div style="font-size:12px;color:#94a3b8">'+ev.start_date+' · '+(ev.profiles?.name||'?')+(arch?' · arquivado':'')+'</div></div>'
+          +(arch?'<button onclick="adminUnarchive(\''+ev.id+'\')" style="background:#dcfce7;color:#16a34a;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0;margin-right:4px">↩</button>':'')
           +'<button onclick="adminDelEv(\''+ev.id+'\')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>';
         eel.appendChild(row);
       });
@@ -1463,13 +1466,22 @@ async function adminArchiveMonth(key, ids) {
   const MNAMES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const [y,m]=key.split('-');
   const label=(MNAMES[parseInt(m)-1]||m)+' '+y;
-  if (!confirm('Apagar os '+ids.length+' eventos de '+label+'?')) return;
-  const { error } = await sb.from('events').delete().in('id', ids);
+  if (!confirm('Arquivar os '+ids.length+' eventos de '+label+'?\n\nFicam riscados no calendário mas NÃO são apagados.')) return;
+  const { error } = await sb.from('events').update({ archived: true }).in('id', ids);
   if (error) { toast('Erro: '+error.message); return; }
-  events = events.filter(e => !ids.includes(e.id));
+  events.forEach(e => { if (ids.includes(e.id)) e.archived = true; });
   refreshView();
   await loadAdminData();
   toast(label+' arquivado ✓');
+}
+
+async function adminUnarchive(id) {
+  const { error } = await sb.from('events').update({ archived: false }).eq('id', id);
+  if (error) { toast('Erro: '+error.message); return; }
+  const e = events.find(x => x.id === id); if (e) e.archived = false;
+  refreshView();
+  await loadAdminData();
+  toast('Desarquivado ✓');
 }
 
 async function adminDelEv(id) {
@@ -1762,7 +1774,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 74;
+const CURRENT_BUILD = 75;
 let updatePending = false;
 
 async function checkForUpdate() {
