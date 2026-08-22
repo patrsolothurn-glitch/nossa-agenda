@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 83</div>
+      <div class="h-build">v 84</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -382,6 +382,7 @@
       <span style="font-size:18px;font-weight:800">⚙️ Painel Admin</span>
       <span class="admin-badge">ADMIN</span>
     </div>
+    <div id="access-alerts"></div>
 
     <button class="btn-notify" onclick="openPushModal()">🔔 Enviar notificação a todos</button>
     <button class="btn-notify" onclick="closeModal('admin-panel'); setTimeout(()=>openModal('invite-modal'),200)">➕ Adicionar membro</button>
@@ -698,6 +699,12 @@ function updateStealthUI() {
     if (ind) ind.style.display = 'none';
     updateAvatarDisplay();
   }
+}
+
+async function clearAccessLog() {
+  await sb.from('access_log').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await loadAdminData();
+  toast('Registo limpo');
 }
 
 function openSettings() {
@@ -1432,12 +1439,37 @@ function handleLogoTap() {
 }
 
 async function openAdminPanel() {
-  if (!profile?.is_admin) { toast('Sem acesso'); return; }
+  if (!profile?.is_admin) {
+    toast('Sem acesso');
+    // Regista a tentativa silenciosamente (o admin vê da próxima vez que entrar)
+    try {
+      await sb.from('access_log').insert({ user_id: user?.id || null, user_name: profile?.name || user?.email || 'Desconhecido' });
+    } catch {}
+    return;
+  }
   openModal('admin-panel');
   await loadAdminData();
 }
 
 async function loadAdminData() {
+  // Tentativas de acesso não autorizadas
+  const alertsEl = document.getElementById('access-alerts');
+  if (alertsEl) {
+    const { data: attempts } = await sb.from('access_log').select('*').order('created_at', { ascending: false }).limit(10);
+    if (attempts?.length) {
+      const list = attempts.map(a => {
+        const t = new Date(a.created_at);
+        const hh = String(t.getHours()).padStart(2,'0'), mm = String(t.getMinutes()).padStart(2,'0');
+        return (a.user_name||'Alguém') + ' às ' + hh + ':' + mm;
+      }).join(' · ');
+      alertsEl.innerHTML = '<div style="background:#fef3c7;border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#92400e">'
+        + '⚠️ <b>' + attempts.length + ' tentativa(s) de acesso ao painel admin:</b><br>' + list
+        + '<br><span onclick="clearAccessLog()" style="text-decoration:underline;cursor:pointer;font-weight:600">Limpar</span></div>';
+    } else {
+      alertsEl.innerHTML = '';
+    }
+  }
+
   // Members
   const { data: members } = await sb.from('profiles').select('*').order('name');
   const mel = document.getElementById('admin-members'); mel.innerHTML = '';
@@ -1807,7 +1839,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 83;
+const CURRENT_BUILD = 84;
 let updatePending = false;
 
 async function checkForUpdate() {
