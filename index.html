@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 79</div>
+      <div class="h-build">v 80</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1080,6 +1080,7 @@ function dayEl(d, m, y, cls, evs = []) {
     evs.slice(0, 3).forEach(e => {
       const cat = CATS.find(c => c.id === e.category) || CATS[0];
       const dot = document.createElement('div'); dot.className = 'ddot'; dot.style.background = cat.color;
+      if (e.archived === true) dot.style.opacity = '0.3';
       dots.appendChild(dot);
     });
     el.appendChild(dots);
@@ -1235,6 +1236,7 @@ function renderWeekView() {
       evs.slice(0,3).forEach(e => {
         const cat = CATS.find(c=>c.id===e.category)||CATS[0];
         const dot = document.createElement('div'); dot.className='ddot'; dot.style.background=cat.color;
+        if (e.archived === true) dot.style.opacity = '0.3';
         dots.appendChild(dot);
       });
       tile.appendChild(dots);
@@ -1776,7 +1778,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 79;
+const CURRENT_BUILD = 80;
 let updatePending = false;
 
 async function checkForUpdate() {
