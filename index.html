@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 82</div>
+      <div class="h-build">v 83</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -396,7 +396,10 @@
     <div id="admin-vmembers"></div>
     <button class="btn-notify" onclick="openAddVirtualMember()">➕ Adicionar membro sem conta</button>
 
-    <div style="margin-top:20px;display:flex;gap:8px">
+    <button class="btn-notify" onclick="forceRefresh()" style="margin-top:16px;background:#1e293b;color:white">🔄 Forçar atualização</button>
+    <button class="btn-notify" onclick="nuclearRefresh()" style="margin-top:10px;background:#7c2d12;color:white">💣 Forçar atualização TOTAL</button>
+
+    <div style="margin-top:16px;display:flex;gap:8px">
 <button class="btn-ghost" onclick="closeModal('admin-panel')" style="flex:1">Fechar</button>
     </div>
   </div>
@@ -1804,7 +1807,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 82;
+const CURRENT_BUILD = 83;
 let updatePending = false;
 
 async function checkForUpdate() {
