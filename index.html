@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 77</div>
+      <div class="h-build">v 78</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -688,16 +688,7 @@ function updateStealthUI() {
     // Esconde avatar e blinda notificações
     if (hav) { hav.style.opacity = '0'; hav.style.pointerEvents = 'none'; }
     // Indicador furtivo discreto
-    let ind = document.getElementById('stealth-ind');
-    if (!ind) {
-      ind = document.createElement('div');
-      ind.id = 'stealth-ind';
-      ind.onclick = toggleStealth;
-      ind.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,44px) + 6px);left:6px;background:#1e293b;color:white;font-size:9px;font-weight:700;padding:3px 7px;border-radius:10px;z-index:997;cursor:pointer;opacity:.6';
-      ind.textContent = '🕵️';
-      document.body.appendChild(ind);
-    }
-    ind.style.display = 'block';
+    // Sem indicador visual — o admin já sabe que está em modo furtivo
   } else {
     if (hav) { hav.style.opacity = ''; hav.style.pointerEvents = ''; }
     const ind = document.getElementById('stealth-ind');
@@ -1785,7 +1776,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 77;
+const CURRENT_BUILD = 78;
 let updatePending = false;
 
 async function checkForUpdate() {
