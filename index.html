@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 84</div>
+      <div class="h-build">v 85</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1593,7 +1593,9 @@ async function sendPushToAll() {
   if (!msg) { toast('Escreve uma mensagem'); return; }
   try {
     const p = new URLSearchParams({ title, message: msg, apikey: SUPABASE_KEY });
-    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p);
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { closeModal('push-modal'); toast('Sessão expirada, entra outra vez'); return; }
+    const res = await fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p, { headers: { Authorization: 'Bearer ' + session.access_token } });
     const data = await res.json();
     closeModal('push-modal');
     toast(data.sent > 0 ? '🔔 Notificação enviada (' + data.sent + ')!' : 'Enviado: ' + JSON.stringify(data));
@@ -1694,7 +1696,10 @@ function sendPushSilent(message) {
   if (stealthMode) return; // modo furtivo: sem notificações, sem rasto
   broadcastChange();
   const p = new URLSearchParams({ title: '📅 NossaAgenda', message, apikey: SUPABASE_KEY });
-  fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p).catch(() => {});
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return;
+    fetch('https://hfpvbemoxgvtmerdnufb.supabase.co/functions/v1/super-function?' + p, { headers: { Authorization: 'Bearer ' + session.access_token } }).catch(() => {});
+  }).catch(() => {});
 }
 
 function b64ToUint8(b64) {
@@ -1839,7 +1844,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 84;
+const CURRENT_BUILD = 85;
 let updatePending = false;
 
 async function checkForUpdate() {
