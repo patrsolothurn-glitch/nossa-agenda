@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 86</div>
+      <div class="h-build">v 87</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -1516,7 +1516,7 @@ async function loadAdminData() {
       const hdr=document.createElement('div');
       hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;border-bottom:1px solid #f1f5f9;margin-top:8px';
       hdr.innerHTML='<span onclick="adminToggleMonth(\''+key+'\')" style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;cursor:pointer;user-select:none"><span id="adm-chv-'+key+'">'+(adminCollapsed[key]?'▸':'▾')+'</span> '+label+' ('+ids.length+')</span>'
-        +'<button onclick="adminArchiveMonth(\''+key+'\','+JSON.stringify(ids)+')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🗑 Arquivar</button>';
+        +'<button id="adm-btn-'+key+'" onclick="adminToggleMonth(\''+key+'\')" style="background:#e0f2fe;color:#0284c7;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">'+(adminCollapsed[key]?'Mostrar':'Minimizar')+'</button>';
       eel.appendChild(hdr);
       const body=document.createElement('div');
       body.id='adm-grp-'+key;
@@ -1544,6 +1544,8 @@ function adminToggleMonth(key) {
   if (b) b.style.display = adminCollapsed[key] ? 'none' : '';
   const c = document.getElementById('adm-chv-' + key);
   if (c) c.textContent = adminCollapsed[key] ? '▸' : '▾';
+  const t = document.getElementById('adm-btn-' + key);
+  if (t) t.textContent = adminCollapsed[key] ? 'Mostrar' : 'Minimizar';
 }
 
 async function adminArchiveMonth(key, ids) {
@@ -1859,7 +1861,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 86;
+const CURRENT_BUILD = 87;
 let updatePending = false;
 
 async function checkForUpdate() {
