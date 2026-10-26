@@ -250,7 +250,7 @@
     </div>
     <div>
       <div class="h-title">NossaAgenda</div>
-      <div class="h-build">v 85</div>
+      <div class="h-build">v 86</div>
     </div>
     <div class="h-avatar" id="h-avatar" onclick="openUserMenu()">?</div>
   </div>
@@ -558,6 +558,7 @@ let logoTaps = 0, logoTimer = null;
 let defaultView = localStorage.getItem('defaultView') || 'month';
 let stealthMode = false;
 let viewMode = defaultView;
+let adminCollapsed = {}; // meses minimizados no painel admin
 
 // ========== INIT ==========
 (async () => {
@@ -1506,15 +1507,21 @@ async function loadAdminData() {
     const MNAMES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const groups={};
     (evs||[]).forEach(ev => { const k=ev.start_date?.slice(0,7)||''; if(!groups[k])groups[k]=[]; groups[k].push(ev); });
+    const nowKey = toDateStr(new Date()).slice(0,7);
     Object.keys(groups).sort().reverse().forEach(key => {
+      if (adminCollapsed[key] === undefined) adminCollapsed[key] = (key < nowKey);
       const [y,m]=key.split('-');
       const label=(MNAMES[parseInt(m)-1]||m)+' '+y;
       const ids=groups[key].map(e=>e.id);
       const hdr=document.createElement('div');
       hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;border-bottom:1px solid #f1f5f9;margin-top:8px';
-      hdr.innerHTML='<span style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase">'+label+' ('+ids.length+')</span>'
+      hdr.innerHTML='<span onclick="adminToggleMonth(\''+key+'\')" style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;cursor:pointer;user-select:none"><span id="adm-chv-'+key+'">'+(adminCollapsed[key]?'▸':'▾')+'</span> '+label+' ('+ids.length+')</span>'
         +'<button onclick="adminArchiveMonth(\''+key+'\','+JSON.stringify(ids)+')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🗑 Arquivar</button>';
       eel.appendChild(hdr);
+      const body=document.createElement('div');
+      body.id='adm-grp-'+key;
+      if (adminCollapsed[key]) body.style.display='none';
+      eel.appendChild(body);
       groups[key].forEach(ev => {
         const cat=CATS.find(c=>c.id===ev.category)||CATS[0];
         const row=document.createElement('div'); row.className='admin-ev-row';
@@ -1525,10 +1532,18 @@ async function loadAdminData() {
           +'<div style="font-size:12px;color:#94a3b8">'+ev.start_date+' · '+(ev.profiles?.name||'?')+(arch?' · arquivado':'')+'</div></div>'
           +(arch?'<button onclick="adminUnarchive(\''+ev.id+'\')" style="background:#dcfce7;color:#16a34a;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0;margin-right:4px">↩</button>':'')
           +'<button onclick="adminDelEv(\''+ev.id+'\')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0">✕</button>';
-        eel.appendChild(row);
+        body.appendChild(row);
       });
     });
   } else { eel.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:8px 0">Sem eventos</div>'; }
+}
+
+function adminToggleMonth(key) {
+  adminCollapsed[key] = !adminCollapsed[key];
+  const b = document.getElementById('adm-grp-' + key);
+  if (b) b.style.display = adminCollapsed[key] ? 'none' : '';
+  const c = document.getElementById('adm-chv-' + key);
+  if (c) c.textContent = adminCollapsed[key] ? '▸' : '▾';
 }
 
 async function adminArchiveMonth(key, ids) {
@@ -1844,7 +1859,7 @@ function broadcastChange() {
 }
 
 // ========== AUTO UPDATE ==========
-const CURRENT_BUILD = 85;
+const CURRENT_BUILD = 86;
 let updatePending = false;
 
 async function checkForUpdate() {
